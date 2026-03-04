@@ -1,0 +1,133 @@
+{
+  "projectType": "frontend",
+  "projectName": "angr Management",
+  "projectDescription": "A cross-platform graphical binary analysis tool powered by the angr framework",
+  "theme": "aspen",
+  "primaryColor": "#63717a",
+  "lightColor": "#b3bcc1",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "User Guide",
+            "pages": [
+              "user-guide/interface-overview",
+              "user-guide/views",
+              "user-guide/disassembly",
+              "user-guide/decompilation",
+              "user-guide/debugging",
+              "user-guide/patching",
+              "user-guide/configuration"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/analysis-capabilities",
+              "features/collaborative-analysis",
+              "features/command-palette",
+              "features/plugins"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "development/architecture",
+              "development/setup",
+              "development/contributing"
+            ]
+          },
+          {
+            "group": "Plugin Development",
+            "pages": [
+              "development/plugin-system",
+              "development/plugin-api",
+              "development/events",
+              "development/plugin-examples"
+            ]
+          },
+          {
+            "group": "UI Development",
+            "pages": [
+              "development/ui-components",
+              "development/views-and-widgets",
+              "development/theming"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "development/testing",
+              "development/building",
+              "development/debugging"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "API Reference",
+            "pages": [
+              "reference/workspace",
+              "reference/instance",
+              "reference/views",
+              "reference/plugins",
+              "reference/config"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "reference/keyboard-shortcuts",
+              "reference/troubleshooting",
+              "reference/faq",
+              "reference/changelog"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Cross-platform graphical interface for binary analysis",
+    "Interactive disassembly and decompilation views",
+    "Extensible plugin architecture",
+    "Multiple analysis views (hex, strings, functions, etc.)",
+    "Collaborative analysis with binsync integration",
+    "IPython console for scripting",
+    "Command palette and navigation shortcuts",
+    "Binary patching capabilities"
+  ],
+  "publicApiSurface": [
+    "angrmanagement.boot()",
+    "angrmanagement.plugins.BasePlugin",
+    "angrmanagement.ui.main_window.MainWindow",
+    "angrmanagement.ui.workspace.Workspace",
+    "angrmanagement.logic.GlobalInfo",
+    "angrmanagement.ui.views.disassembly_view.DisassemblyView",
+    "angrmanagement.ui.views.code_view.CodeView",
+    "angrmanagement.ui.views.hex_view.HexView",
+    "angrmanagement.ui.views.functions_view.FunctionsView",
+    "angrmanagement.config.Conf",
+    "angrmanagement.data.instance.Instance",
+    "angrmanagement.plugins.plugin_manager.PluginManager"
+  ]
+}
