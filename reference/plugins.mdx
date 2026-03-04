@@ -1,0 +1,651 @@
+---
+title: Plugins
+description: Base class for creating angr management plugins
+---
+
+## BasePlugin
+
+The `BasePlugin` class is the base class for all angr management plugins. Plugins can extend the functionality of angr management by adding custom views, UI elements, analyses, and more.
+
+### Constructor
+
+```python
+BasePlugin(workspace: Workspace)
+```
+
+<ParamField path="workspace" type="Workspace" required>
+  The workspace instance this plugin is associated with
+</ParamField>
+
+### Class Attributes
+
+<ResponseField name="DISPLAY_NAME" type="str | None">
+  Human-readable name for the plugin. If None, uses the class name.
+</ResponseField>
+
+<ResponseField name="REQUIRE_WORKSPACE" type="bool" default="True">
+  Whether this plugin requires a workspace to function
+</ResponseField>
+
+<ResponseField name="TOOLBAR_BUTTONS" type="list[tuple[QIcon, str]]" default="[]">
+  List of toolbar buttons as (icon, tooltip) tuples
+</ResponseField>
+
+<ResponseField name="MENU_BUTTONS" type="list[str]" default="[]">
+  List of menu button text labels
+</ResponseField>
+
+<ResponseField name="FUNC_COLUMNS" type="list[str]" default="[]">
+  List of custom column names for the functions view
+</ResponseField>
+
+<ResponseField name="URL_ACTIONS" type="list[str]" default="[]">
+  List of custom URL actions this plugin handles
+</ResponseField>
+
+<ResponseField name="CONFIG_ENTRIES" type="list[ConfigurationEntry]" default="[]">
+  Custom configuration entries for this plugin
+</ResponseField>
+
+<ResponseField name="OPTIMIZATION_PASSES" type="list[tuple[type[OptimizationPass], bool]]" default="[]">
+  Decompiler optimization passes as (pass_class, enabled) tuples
+</ResponseField>
+
+### Properties
+
+<ResponseField name="workspace" type="Workspace | None">
+  The workspace instance (may be None if REQUIRE_WORKSPACE is False)
+</ResponseField>
+
+### Methods
+
+#### teardown
+
+```python
+teardown() -> None
+```
+
+Clean up plugin resources. Called when the plugin is being unloaded.
+
+#### get_display_name
+
+```python
+@classmethod
+get_display_name(cls) -> str
+```
+
+Get the display name for this plugin.
+
+<ResponseField name="return" type="str">
+  The display name (DISPLAY_NAME if set, otherwise class name)
+</ResponseField>
+
+## Generic Callbacks
+
+#### status_bar_permanent_widgets
+
+```python
+status_bar_permanent_widgets() -> Generator | None
+```
+
+Yield widgets to add to the right side of the status bar.
+
+<ResponseField name="return" type="Generator | None">
+  Generator yielding QWidget instances, or None
+</ResponseField>
+
+#### on_workspace_initialized
+
+```python
+on_workspace_initialized(workspace: Workspace) -> None
+```
+
+Called right after a workspace is initialized.
+
+<ParamField path="workspace" type="Workspace" required>
+  The initialized workspace
+</ParamField>
+
+#### angrdb_store_entries
+
+```python
+angrdb_store_entries() -> Generator | None
+```
+
+Yield key-value pairs to persist in angrDB.
+
+<ResponseField name="return" type="Generator | None">
+  Generator yielding (key, value) tuples, or None
+</ResponseField>
+
+#### angrdb_load_entry
+
+```python
+angrdb_load_entry(key: str, value: str) -> None
+```
+
+Called for each persisted entry loaded from angrDB.
+
+<ParamField path="key" type="str" required>
+  The entry key
+</ParamField>
+
+<ParamField path="value" type="str" required>
+  The entry value
+</ParamField>
+
+## UI Callbacks
+
+#### color_insn
+
+```python
+color_insn(addr: int, selected: bool, disasm_view) -> QColor | None
+```
+
+Return custom background color for an instruction.
+
+<ParamField path="addr" type="int" required>
+  Instruction address
+</ParamField>
+
+<ParamField path="selected" type="bool" required>
+  Whether the instruction is selected
+</ParamField>
+
+<ParamField path="disasm_view" type="DisassemblyView" required>
+  The disassembly view
+</ParamField>
+
+<ResponseField name="return" type="QColor | None">
+  Custom color, or None to use default
+</ResponseField>
+
+#### color_block
+
+```python
+color_block(addr: int) -> QColor | None
+```
+
+Return custom background color for a basic block.
+
+<ParamField path="addr" type="int" required>
+  Block address
+</ParamField>
+
+<ResponseField name="return" type="QColor | None">
+  Custom color, or None to use default
+</ResponseField>
+
+#### color_func
+
+```python
+color_func(func: Function) -> QColor | None
+```
+
+Return custom color for a function in the functions view.
+
+<ParamField path="func" type="Function" required>
+  The function
+</ParamField>
+
+<ResponseField name="return" type="QColor | None">
+  Custom color, or None to use default
+</ResponseField>
+
+#### draw_insn
+
+```python
+draw_insn(qinsn: QInstruction, painter: QPainter) -> None
+```
+
+Custom drawing for instructions.
+
+<ParamField path="qinsn" type="QInstruction" required>
+  The instruction widget
+</ParamField>
+
+<ParamField path="painter" type="QPainter" required>
+  QPainter for custom drawing
+</ParamField>
+
+#### draw_block
+
+```python
+draw_block(qblock: QBlock, painter: QPainter) -> None
+```
+
+Custom drawing for basic blocks.
+
+<ParamField path="qblock" type="QBlock" required>
+  The block widget
+</ParamField>
+
+<ParamField path="painter" type="QPainter" required>
+  QPainter for custom drawing
+</ParamField>
+
+#### instrument_disassembly_view
+
+```python
+instrument_disassembly_view(dview: DisassemblyView) -> None
+```
+
+Called when a disassembly view is created. Use to add custom functionality.
+
+<ParamField path="dview" type="DisassemblyView" required>
+  The disassembly view
+</ParamField>
+
+#### instrument_code_view
+
+```python
+instrument_code_view(cview: CodeView) -> None
+```
+
+Called when a code/pseudocode view is created. Use to add custom functionality.
+
+<ParamField path="cview" type="CodeView" required>
+  The code view
+</ParamField>
+
+#### handle_click_insn
+
+```python
+handle_click_insn(qinsn: QInstruction, event: QGraphicsSceneMouseEvent) -> bool
+```
+
+Handle mouse click on an instruction.
+
+<ParamField path="qinsn" type="QInstruction" required>
+  The clicked instruction widget
+</ParamField>
+
+<ParamField path="event" type="QGraphicsSceneMouseEvent" required>
+  The mouse event
+</ParamField>
+
+<ResponseField name="return" type="bool">
+  True if the event was handled (prevents default behavior), False otherwise
+</ResponseField>
+
+#### handle_click_block
+
+```python
+handle_click_block(qblock: QBlock, event: QGraphicsSceneMouseEvent) -> bool
+```
+
+Handle mouse click on a basic block.
+
+<ParamField path="qblock" type="QBlock" required>
+  The clicked block widget
+</ParamField>
+
+<ParamField path="event" type="QGraphicsSceneMouseEvent" required>
+  The mouse event
+</ParamField>
+
+<ResponseField name="return" type="bool">
+  True if the event was handled, False otherwise
+</ResponseField>
+
+#### handle_raise_view
+
+```python
+handle_raise_view(view: BaseView) -> None
+```
+
+Called when a view is raised to the front.
+
+<ParamField path="view" type="BaseView" required>
+  The view being raised
+</ParamField>
+
+#### handle_click_toolbar
+
+```python
+handle_click_toolbar(idx: int) -> None
+```
+
+Handle click on a toolbar button defined in TOOLBAR_BUTTONS.
+
+<ParamField path="idx" type="int" required>
+  Index of the clicked button in TOOLBAR_BUTTONS
+</ParamField>
+
+#### handle_click_menu
+
+```python
+handle_click_menu(idx: int) -> None
+```
+
+Handle click on a menu button defined in MENU_BUTTONS.
+
+<ParamField path="idx" type="int" required>
+  Index of the clicked menu item in MENU_BUTTONS
+</ParamField>
+
+#### extract_func_column
+
+```python
+extract_func_column(func: Function, idx: int) -> tuple[Any, str]
+```
+
+Extract data for a custom function column.
+
+<ParamField path="func" type="Function" required>
+  The function
+</ParamField>
+
+<ParamField path="idx" type="int" required>
+  Index of the column in FUNC_COLUMNS
+</ParamField>
+
+<ResponseField name="return" type="tuple[Any, str]">
+  Tuple of (sortable_data, rendered_string)
+</ResponseField>
+
+## Context Menu Callbacks
+
+#### build_context_menu_insn
+
+```python
+build_context_menu_insn(item: QInstruction) -> Iterable[None | tuple[str, Callable]]
+```
+
+Build context menu items for an instruction.
+
+<ParamField path="item" type="QInstruction" required>
+  The instruction widget
+</ParamField>
+
+<ResponseField name="return" type="Iterable[None | tuple[str, Callable]]">
+  Iterable of menu items. Use None for separators, or (text, callback) tuples.
+</ResponseField>
+
+#### build_context_menu_block
+
+```python
+build_context_menu_block(item: QBlock) -> Iterable[None | tuple[str, Callable]]
+```
+
+Build context menu items for a basic block.
+
+<ParamField path="item" type="QBlock" required>
+  The block widget
+</ParamField>
+
+<ResponseField name="return" type="Iterable[None | tuple[str, Callable]]">
+  Iterable of menu items
+</ResponseField>
+
+#### build_context_menu_node
+
+```python
+build_context_menu_node(node) -> Iterable[None | tuple[str, Callable]]
+```
+
+Build context menu items for a graph node.
+
+<ParamField path="node" required>
+  The graph node
+</ParamField>
+
+<ResponseField name="return" type="Iterable[None | tuple[str, Callable]]">
+  Iterable of menu items
+</ResponseField>
+
+#### build_context_menu_functions
+
+```python
+build_context_menu_functions(funcs: list[Function]) -> Iterable[None | tuple[str, Callable]]
+```
+
+Build context menu items for selected functions.
+
+<ParamField path="funcs" type="list[Function]" required>
+  List of selected functions
+</ParamField>
+
+<ResponseField name="return" type="Iterable[None | tuple[str, Callable]]">
+  Iterable of menu items
+</ResponseField>
+
+#### build_context_menu_label
+
+```python
+build_context_menu_label(addr: int) -> Iterable[None | tuple[str, Callable]]
+```
+
+Build context menu items for a label.
+
+<ParamField path="addr" type="int" required>
+  Address of the label
+</ParamField>
+
+<ResponseField name="return" type="Iterable[None | tuple[str, Callable]]">
+  Iterable of menu items
+</ResponseField>
+
+#### build_qblock_annotations
+
+```python
+build_qblock_annotations(qblock: QBlock) -> Iterable[QInstructionAnnotation]
+```
+
+Build custom annotations for a basic block.
+
+<ParamField path="qblock" type="QBlock" required>
+  The block widget
+</ParamField>
+
+<ResponseField name="return" type="Iterable[QInstructionAnnotation]">
+  Iterable of annotation widgets
+</ResponseField>
+
+#### handle_url_action
+
+```python
+handle_url_action(action: str, kwargs: dict) -> None
+```
+
+Handle a custom URL action defined in URL_ACTIONS.
+
+<ParamField path="action" type="str" required>
+  The action name
+</ParamField>
+
+<ParamField path="kwargs" type="dict" required>
+  Arguments for the action
+</ParamField>
+
+#### step_callback
+
+```python
+step_callback(simgr: SimulationManager) -> None
+```
+
+Called after each step in symbolic execution.
+
+<ParamField path="simgr" type="SimulationManager" required>
+  The simulation manager that stepped
+</ParamField>
+
+## Decompiler Callbacks
+
+#### handle_stack_var_renamed
+
+```python
+handle_stack_var_renamed(func: Function, offset: int, old_name: str, new_name: str) -> bool
+```
+
+Called when a stack variable is renamed.
+
+<ParamField path="func" type="Function" required>
+  The function containing the variable
+</ParamField>
+
+<ParamField path="offset" type="int" required>
+  Stack offset of the variable
+</ParamField>
+
+<ParamField path="old_name" type="str" required>
+  Previous name
+</ParamField>
+
+<ParamField path="new_name" type="str" required>
+  New name
+</ParamField>
+
+<ResponseField name="return" type="bool">
+  True if handled, False otherwise
+</ResponseField>
+
+#### handle_stack_var_retyped
+
+```python
+handle_stack_var_retyped(func: Function, offset: int, old_type, new_type) -> bool
+```
+
+Called when a stack variable's type is changed.
+
+#### handle_func_arg_renamed
+
+```python
+handle_func_arg_renamed(func: Function, offset: int, old_name: str, new_name: str) -> bool
+```
+
+Called when a function argument is renamed.
+
+#### handle_func_arg_retyped
+
+```python
+handle_func_arg_retyped(func: Function, offset: int, old_type, new_type) -> bool
+```
+
+Called when a function argument's type is changed.
+
+#### handle_global_var_renamed
+
+```python
+handle_global_var_renamed(address: int, old_name: str, new_name: str) -> bool
+```
+
+Called when a global variable is renamed.
+
+#### handle_global_var_retyped
+
+```python
+handle_global_var_retyped(address: int, old_type, new_type) -> bool
+```
+
+Called when a global variable's type is changed.
+
+#### handle_other_var_renamed
+
+```python
+handle_other_var_renamed(var, old_name: str, new_name: str) -> bool
+```
+
+Called when any other variable is renamed.
+
+#### handle_other_var_retyped
+
+```python
+handle_other_var_retyped(var, old_type, new_type) -> bool
+```
+
+Called when any other variable's type is changed.
+
+#### handle_function_renamed
+
+```python
+handle_function_renamed(func: Function, old_name: str, new_name: str) -> bool
+```
+
+Called when a function is renamed.
+
+#### handle_function_retyped
+
+```python
+handle_function_retyped(func: Function, old_type, new_type) -> bool
+```
+
+Called when a function's type signature is changed.
+
+#### handle_comment_changed
+
+```python
+handle_comment_changed(
+    address: int,
+    old_cmt: str,
+    new_cmt: str,
+    created: bool,
+    decomp: bool
+) -> bool
+```
+
+Called when a comment is changed.
+
+<ParamField path="address" type="int" required>
+  Address of the comment
+</ParamField>
+
+<ParamField path="old_cmt" type="str" required>
+  Previous comment text
+</ParamField>
+
+<ParamField path="new_cmt" type="str" required>
+  New comment text
+</ParamField>
+
+<ParamField path="created" type="bool" required>
+  True if this is a new comment
+</ParamField>
+
+<ParamField path="decomp" type="bool" required>
+  True if this is a decompiler comment
+</ParamField>
+
+<ResponseField name="return" type="bool">
+  True if handled, False otherwise
+</ResponseField>
+
+#### handle_struct_changed
+
+```python
+handle_struct_changed(old_struct, new_struct) -> bool
+```
+
+Called when a struct definition is changed.
+
+#### decompile_callback
+
+```python
+decompile_callback(func: Function) -> None
+```
+
+Called right after a function is decompiled.
+
+<ParamField path="func" type="Function" required>
+  The function that was decompiled
+</ParamField>
+
+#### handle_project_save
+
+```python
+handle_project_save(file_name: str) -> None
+```
+
+Called when the project is saved.
+
+<ParamField path="file_name" type="str" required>
+  Name of the saved project file
+</ParamField>
+
+#### handle_project_initialization
+
+```python
+handle_project_initialization() -> None
+```
+
+Called when a new project is loaded. Use for plugin initialization.

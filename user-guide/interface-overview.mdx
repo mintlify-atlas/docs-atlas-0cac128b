@@ -1,0 +1,215 @@
+---
+title: Interface Overview
+description: Understanding the angr Management graphical interface
+---
+
+angr Management provides a cross-platform graphical user interface for binary analysis, built on top of the angr framework. This guide introduces the main components of the interface.
+
+## Main Window
+
+The main window consists of several key components:
+
+<CardGroup cols={2}>
+  <Card title="Menu Bar" icon="bars">
+    Access to File, View, Analyze, AI, Plugins, and Help menus
+  </Card>
+  <Card title="Toolbars" icon="toolbox">
+    Quick access to common operations like loading binaries and debugging
+  </Card>
+  <Card title="View Area" icon="table-cells">
+    Tabbed interface displaying multiple views (disassembly, pseudocode, etc.)
+  </Card>
+  <Card title="Status Bar" icon="info-circle">
+    Shows job progress and current analysis status
+  </Card>
+</CardGroup>
+
+## Window Layout
+
+angr Management uses an advanced docking system that allows you to:
+
+- Arrange views in tabs or split layouts
+- Dock views to any edge of the main window
+- Float views as separate windows
+- Auto-hide views to maximize workspace
+
+### Workspace Organization
+
+The default workspace layout includes:
+
+<Steps>
+  <Step title="Center Area">
+    Primary analysis views (Disassembly, Pseudocode, Hex)
+  </Step>
+  <Step title="Left Sidebar">
+    Functions list for easy navigation
+  </Step>
+  <Step title="Right Sidebar">
+    Registers and Stack views (when debugging)
+  </Step>
+  <Step title="Bottom Panel">
+    Console, Log, and Jobs views (auto-hidden by default)
+  </Step>
+</Steps>
+
+## Menu System
+
+### File Menu
+
+The File menu provides access to:
+
+- **Load a new binary**: Open executables, core dumps, or angr databases (.adb)
+- **Load a new trace**: Open execution traces for analysis
+- **Save angr database**: Save your analysis progress and annotations
+- **Save patched binary**: Export a binary with applied patches
+- **Preferences**: Configure angr Management settings
+
+### View Menu
+
+Quickly show or hide different analysis views:
+
+- Disassembly (Graph/Linear)
+- Pseudocode
+- Hex
+- Functions
+- Strings
+- Breakpoints
+- And many more...
+
+### Analyze Menu
+
+Trigger various analysis passes:
+
+- Run analysis (initial CFG generation)
+- Decompile current function
+- Variable recovery
+- Calling convention analysis
+
+### AI Menu
+
+<Note>
+AI features require configuring an LLM client in Preferences.
+</Note>
+
+AI-assisted analysis options:
+
+- LLM Refine All
+- Suggest Variable Names
+- Suggest Function Names
+- Suggest Variable Types
+- Summarize Function
+
+## Toolbars
+
+angr Management includes several specialized toolbars:
+
+<Tabs>
+  <Tab title="File Toolbar">
+    - Load Binary
+    - Save Database
+    - Recent Files
+  </Tab>
+  <Tab title="Debug Toolbar">
+    - Run / Continue (F9)
+    - Step Forward (F7)
+    - Toggle Breakpoint (F2)
+    - Debugger controls
+  </Tab>
+  <Tab title="Feature Map Toolbar">
+    - Visual overview of binary structure
+    - Color-coded function types
+    - Quick navigation
+  </Tab>
+</Tabs>
+
+## Keyboard Shortcuts
+
+Common keyboard shortcuts for efficient navigation:
+
+| Shortcut | Action |
+|----------|--------|
+| `G` | Jump to address |
+| `Tab` | Switch between disassembly and pseudocode |
+| `Space` | Toggle graph/linear disassembly view |
+| `;` | Add comment |
+| `Alt+1-9` | Switch between open views |
+| `Alt+Left/Right` | Navigate backward/forward in jump history |
+| `F2` | Toggle execution breakpoint |
+| `F7` | Step forward (debugging) |
+| `F9` | Continue execution (debugging) |
+| `Ctrl+Shift+P` | Command palette |
+| `Shift+Shift` | Goto-anything palette |
+
+## Status Bar
+
+The status bar displays:
+
+- **Current job**: Name of the running analysis
+- **Progress**: Percentage complete for long-running operations
+- **Job queue**: Number of pending jobs
+
+During intensive analysis operations, a progress dialog may appear showing detailed status information.
+
+## Command Palette
+
+Press `Ctrl+Shift+P` to open the command palette, which provides quick access to all registered commands:
+
+- Type to search for commands
+- Execute any menu action without navigating menus
+- See keyboard shortcuts for commands
+
+## Goto-Anything Palette
+
+Press `Shift` twice quickly to open the goto-anything palette:
+
+- Jump to functions by name
+- Navigate to addresses
+- Find symbols and labels
+
+## First-Time Setup
+
+When you first launch angr Management:
+
+1. A welcome dialog appears with quick-start options
+2. You may be prompted to register the `angr://` URL scheme for deep linking
+3. The main window opens in a default layout
+4. Use **File → Preferences** to customize settings
+
+## Working with Projects
+
+angr Management organizes your work into projects:
+
+<Accordion title="Binary Loading">
+  When you load a binary, angr Management:
+  1. Creates an angr project
+  2. Loads the binary with CLE (angr's loader)
+  3. Optionally runs initial analysis
+  4. Updates the window title with the binary name
+</Accordion>
+
+<Accordion title="Database Files">
+  angr databases (.adb files) save:
+  - Control flow graphs (CFGs)
+  - Function information
+  - Variable names and types
+  - Comments and annotations
+  - Decompilation results
+  - Plugin data
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Views" icon="grid" href="/user-guide/views">
+    Learn about available analysis views
+  </Card>
+  <Card title="Disassembly" icon="microchip" href="/user-guide/disassembly">
+    Explore the disassembly view
+  </Card>
+  <Card title="Decompilation" icon="code" href="/user-guide/decompilation">
+    Work with pseudocode
+  </Card>
+  <Card title="Configuration" icon="gear" href="/user-guide/configuration">
+    Customize your workspace
+  </Card>
+</CardGroup>

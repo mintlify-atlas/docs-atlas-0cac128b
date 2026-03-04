@@ -1,0 +1,294 @@
+---
+title: Building
+description: Build standalone executables and release packages for angr Management
+---
+
+## Overview
+
+angr Management uses PyInstaller to create standalone executables for Windows, macOS, and Linux. The build process bundles Python, Qt, and all dependencies into distributable packages.
+
+## Prerequisites
+
+### Install Build Dependencies
+
+Install the PyInstaller dependency group:
+
+```bash
+uv sync --group pyinstaller
+```
+
+This installs:
+- `pyinstaller==6.16.0` - Executable bundler
+- `pillow` - Image processing (macOS)
+- `keystone-engine` - Assembler engine (non-Linux ARM64)
+- `angr[unicorn]` - Full angr with emulation support
+
+<Warning>
+**Important:** Do NOT install packages in editable mode (`pip -e`) when building with PyInstaller. PyInstaller [currently fails](https://github.com/pyinstaller/pyinstaller/issues/7524) to bundle modules installed with editable mode.
+</Warning>
+
+## Building with PyInstaller
+
+### Basic Build
+
+Run PyInstaller with the spec file:
+
+```bash
+pyinstaller angr-management.spec
+```
+
+This creates:
+- `dist/angr-management/` - Onedir bundle (directory with executable and dependencies)
+- `dist/angr-management.app` - macOS application bundle (macOS only)
+
+### Build Script
+
+The automated build script handles platform-specific packaging:
+
+```bash
+bash .github/workflows/nightly-build.sh
+```
+
+This script:
+1. Syncs dependencies with `uv sync --python "3.12"`
+2. Runs PyInstaller
+3. Creates platform-specific packages in `upload/`
+
+### Platform-Specific Outputs
+
+**macOS:**
+```bash
+# Creates: angr-management-v{VERSION}-macOS-{ARCH}.zip
+zip -ry upload/angr-management-*.zip dist/*.app
+```
+
+**Linux:**
+```bash
+# Creates: angr-management-v{VERSION}-{DISTRO}-{VERSION}-{ARCH}.tar.gz
+tar -C dist -czf upload/angr-management-*.tar.gz angr-management
+```
+
+**Windows:**
+```bash
+# Creates: angr-management-v{VERSION}-win64-x86_64.zip
+7z a upload/angr-management-*.zip dist/*
+
+# Also builds installer with NSIS:
+makensis -DVERSION={VERSION} angr-management.nsi
+```
+
+## PyInstaller Spec File
+
+The `angr-management.spec` file configures the build process:
+
+### Key Configuration
+
+```python
+# Entry point
+a = Analysis(
+    [str(AM_BASE / "start.py")],
+    pathex=[],
+    binaries=[],
+    datas=included_data,
+    hiddenimports=[
+        "ipykernel.datapub",
+        "pkg_resources.py2_warn",
+        "sqlalchemy.sql.default_comparator",
+        "pyxdg",
+        "pyzmq",
+        "xmlrpc.server",
+        "charset_normalizer.md__mypyc",
+        "PySide6.support.deprecated",
+        "binsync.interface_overrides.angr",
+    ],
+    excludes=["debugpy"],
+)
+```
+
+### Included Data Files
+
+The spec file bundles these resources:
+
+```python
+included_data = [
+    ("angrmanagement/resources", "angrmanagement/resources"),
+    ("angrmanagement/resources/flirt_signatures", "angrmanagement/resources/flirt_signatures"),
+    ("angrmanagement/resources/images", "angrmanagement/resources/images"),
+    ("angrmanagement/resources/library_docs", "angrmanagement/resources/library_docs"),
+    ("angrmanagement/plugins", "angrmanagement/plugins"),
+    ("angr/analyses/identifier/functions", "angr/analyses/identifier/functions"),
+    ("angr/procedures", "angr/procedures"),
+    # ... and more
+]
+```
+
+### Platform-Specific Bundles
+
+Linux-specific additions:
+
+```python
+if sys.platform == "linux":
+    included_data.append((str(PYSIDE6_BASE / "Qt" / "lib"), "PySide6/Qt/lib"))
+    
+    if platform.machine() != "aarch64":
+        included_data.append((str(KEYSTONE_BASE), "keystone"))
+    
+    included_data.append((str(ZMQ_BASE / ".." / "pyzmq.libs"), "pyzmq.libs"))
+```
+
+macOS bundle:
+
+```python
+if sys.platform == "darwin":
+    app = BUNDLE(coll, name="angr-management.app", icon=icon, bundle_identifier=None)
+```
+
+## Release Process
+
+### Nightly Builds
+
+Automated nightly builds run via GitHub Actions:
+
+```yaml
+# .github/workflows/nightly-build.yml
+on:
+  schedule:
+    - cron: "0 0 * * *"  # Daily at midnight
+  workflow_dispatch:
+```
+
+The workflow:
+1. Builds on all platforms (Ubuntu 22.04/24.04, Windows 2022, macOS 15)
+2. Creates platform-specific packages
+3. Tests installations
+4. Publishes to GitHub releases as "nightly" tag
+
+### Build Matrix
+
+Builds are created for:
+
+- **Ubuntu:** 22.04, 24.04 (x86_64 and ARM64)
+- **Windows:** 2022 (x86_64)
+- **macOS:** 15 (Intel and Apple Silicon)
+
+### AppImage (Linux)
+
+Additional AppImage builds for Ubuntu:
+
+```bash
+./scripts/build-appimage.sh
+mv angr-management*.AppImage upload/
+```
+
+AppImages are built for Ubuntu 22.04 and ARM64 runners.
+
+## Testing Builds
+
+### Ubuntu Testing
+
+Tests run in `xvfb` (headless X server):
+
+```bash
+# Extract and test onedir
+tar xf angr-management-*.tar.gz
+export binary="./angr-management/angr-management"
+
+# Or test AppImage
+export binary=$(find . -name "angr-management*.AppImage")
+chmod +x $binary
+
+# Run with xvfb
+xvfb-run bash -x -c '
+  $binary &
+  sleep 30 && output=$(xwininfo -tree -root)
+  [[ "$output" == *"angr management"* ]] || exit 1
+'
+```
+
+### Windows Testing
+
+Tests use a Python script to verify installation:
+
+```bash
+uv run tests/installation/check_windows_install.py "angr-management-*-setup.exe"
+```
+
+### macOS Testing
+
+Tests verify the app launches:
+
+```bash
+unzip angr-management-*-macOS-*.zip
+open *.app
+
+# Wait and check for window
+windows=$(osascript -e '
+  tell application "System Events" to get (name of every window of processes whose name contains "angr management") as string
+')
+```
+
+## Troubleshooting
+
+### Build Failures
+
+If builds fail, check:
+
+1. **PyInstaller logs** - Look for missing imports or data files
+2. **Nightly build pipeline** - Reference `.github/workflows/pyinstaller-build.yml`
+3. **PyInstaller documentation** - [pyinstaller.org](https://pyinstaller.org/en/stable/)
+
+### Common Issues
+
+**Missing imports:**
+```python
+# Add to hiddenimports in angr-management.spec
+hiddenimports=[
+    "your.missing.module",
+]
+```
+
+**Missing data files:**
+```python
+# Add to included_data in angr-management.spec
+included_data.append(("source/path", "dest/path"))
+```
+
+**Platform-specific issues:**
+- Check platform-specific sections in the spec file
+- Reference the CI workflow for the target platform
+- Test in the same environment as CI (same OS version)
+
+## Manual Release
+
+To create a manual release:
+
+1. **Trigger workflow:**
+```bash
+gh workflow run nightly-build.yml --field deploy=true
+```
+
+2. **Download artifacts:**
+```bash
+gh run download {RUN_ID}
+```
+
+3. **Create release:**
+```bash
+gh release create v{VERSION} \
+  --title "angr management {VERSION}" \
+  --notes "Release notes here" \
+  $(find . -type f)
+```
+
+## Version Management
+
+The version is read from `angrmanagement.__version__`:
+
+```bash
+# Get current version
+python -c "from angrmanagement import __version__; print(__version__)"
+
+# Or use the script
+python ./scripts/get-version.py
+python ./scripts/get-version.py --format numeric
+```

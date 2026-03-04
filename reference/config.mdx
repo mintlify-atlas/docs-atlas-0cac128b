@@ -1,0 +1,514 @@
+---
+title: Configuration
+description: Global configuration manager for angr management settings
+---
+
+## Conf
+
+The global `Conf` object is an instance of `ConfigurationManager` that manages all angr management settings. It is automatically created and loaded from the configuration file.
+
+```python
+from angrmanagement.config import Conf
+
+# Access configuration values
+font = Conf.disasm_font
+color = Conf.disasm_view_background_color
+
+# Modify configuration
+Conf.disasm_font = QFont("Courier New", 12)
+```
+
+## ConfigurationManager
+
+The `ConfigurationManager` class manages UI configuration with save/load functionality.
+
+### Constructor
+
+```python
+ConfigurationManager(entries: dict[str, ConfigurationEntry] | None = None)
+```
+
+<ParamField path="entries" type="dict[str, ConfigurationEntry]">
+  Dictionary of configuration entries. If None, loads default entries.
+</ParamField>
+
+### Font Properties
+
+<ResponseField name="disasm_font" type="QFont">
+  Font used in disassembly view
+</ResponseField>
+
+<ResponseField name="disasm_font_metrics" type="QFontMetricsF">
+  Font metrics for disassembly font (read-only, cached)
+</ResponseField>
+
+<ResponseField name="disasm_font_height" type="float">
+  Height of disassembly font (read-only, cached)
+</ResponseField>
+
+<ResponseField name="disasm_font_width" type="float">
+  Width of a single character in disassembly font (read-only, cached)
+</ResponseField>
+
+<ResponseField name="disasm_font_ascent" type="float">
+  Ascent of disassembly font (read-only, cached)
+</ResponseField>
+
+<ResponseField name="symexec_font" type="QFont">
+  Font used in symbolic execution view
+</ResponseField>
+
+<ResponseField name="symexec_font_metrics" type="QFontMetricsF">
+  Font metrics for symbolic execution font (read-only, cached)
+</ResponseField>
+
+<ResponseField name="symexec_font_height" type="float">
+  Height of symbolic execution font (read-only, cached)
+</ResponseField>
+
+<ResponseField name="symexec_font_width" type="float">
+  Width of symbolic execution font (read-only, cached)
+</ResponseField>
+
+<ResponseField name="symexec_font_ascent" type="float">
+  Ascent of symbolic execution font (read-only, cached)
+</ResponseField>
+
+<ResponseField name="code_font" type="QFont">
+  Font used in pseudocode/decompiler view
+</ResponseField>
+
+<ResponseField name="code_font_metrics" type="QFontMetricsF">
+  Font metrics for code font (read-only, cached)
+</ResponseField>
+
+<ResponseField name="code_font_height" type="float">
+  Height of code font (read-only, cached)
+</ResponseField>
+
+<ResponseField name="code_font_width" type="float">
+  Width of code font (read-only, cached)
+</ResponseField>
+
+<ResponseField name="code_font_ascent" type="float">
+  Ascent of code font (read-only, cached)
+</ResponseField>
+
+<ResponseField name="ui_default_font" type="QFont">
+  Default font for UI elements
+</ResponseField>
+
+<ResponseField name="tabular_view_font" type="QFont">
+  Font used in tabular views
+</ResponseField>
+
+### Theme Properties
+
+<ResponseField name="theme_name" type="str" default="Light">
+  Name of the current theme
+</ResponseField>
+
+<ResponseField name="base_theme_name" type="str" default="Light">
+  Name of the base theme
+</ResponseField>
+
+### Disassembly View Colors
+
+<ResponseField name="disasm_view_background_color" type="QColor">
+  Background color for disassembly view
+</ResponseField>
+
+<ResponseField name="disasm_view_operand_color" type="QColor">
+  Color for instruction operands
+</ResponseField>
+
+<ResponseField name="disasm_view_operand_constant_color" type="QColor">
+  Color for constant operands
+</ResponseField>
+
+<ResponseField name="disasm_view_variable_label_color" type="QColor">
+  Color for variable labels
+</ResponseField>
+
+<ResponseField name="disasm_view_operand_highlight_color" type="QColor">
+  Highlight color for operands
+</ResponseField>
+
+<ResponseField name="disasm_view_operand_select_color" type="QColor">
+  Selection color for operands
+</ResponseField>
+
+<ResponseField name="disasm_view_function_color" type="QColor">
+  Color for function references
+</ResponseField>
+
+<ResponseField name="disasm_view_string_color" type="QColor">
+  Color for string literals
+</ResponseField>
+
+<ResponseField name="disasm_view_comment_color" type="QColor">
+  Color for comments
+</ResponseField>
+
+<ResponseField name="disasm_view_label_color" type="QColor">
+  Color for labels
+</ResponseField>
+
+<ResponseField name="disasm_view_node_background_color" type="QColor">
+  Background color for graph nodes
+</ResponseField>
+
+<ResponseField name="disasm_view_node_border_color" type="QColor">
+  Border color for graph nodes
+</ResponseField>
+
+<ResponseField name="disasm_view_selected_node_border_color" type="QColor">
+  Border color for selected nodes
+</ResponseField>
+
+<ResponseField name="disasm_view_node_instruction_selected_background_color" type="QColor">
+  Background color for selected instructions
+</ResponseField>
+
+### Edge Colors
+
+<ResponseField name="disasm_view_back_edge_color" type="QColor">
+  Color for back edges (loops)
+</ResponseField>
+
+<ResponseField name="disasm_view_true_edge_color" type="QColor">
+  Color for true branch edges
+</ResponseField>
+
+<ResponseField name="disasm_view_false_edge_color" type="QColor">
+  Color for false branch edges
+</ResponseField>
+
+<ResponseField name="disasm_view_direct_jump_edge_color" type="QColor">
+  Color for direct jump edges
+</ResponseField>
+
+<ResponseField name="disasm_view_exception_edge_color" type="QColor">
+  Color for exception edges
+</ResponseField>
+
+### Pseudocode Colors
+
+<ResponseField name="pseudocode_comment_color" type="QColor">
+  Color for comments in pseudocode
+</ResponseField>
+
+<ResponseField name="pseudocode_function_color" type="QColor">
+  Color for function names in pseudocode
+</ResponseField>
+
+<ResponseField name="pseudocode_library_function_color" type="QColor">
+  Color for library function calls
+</ResponseField>
+
+<ResponseField name="pseudocode_quotation_color" type="QColor">
+  Color for string literals
+</ResponseField>
+
+<ResponseField name="pseudocode_keyword_color" type="QColor">
+  Color for language keywords
+</ResponseField>
+
+<ResponseField name="pseudocode_types_color" type="QColor">
+  Color for type names
+</ResponseField>
+
+<ResponseField name="pseudocode_variable_color" type="QColor">
+  Color for local variables
+</ResponseField>
+
+<ResponseField name="pseudocode_global_variable_color" type="QColor">
+  Color for global variables
+</ResponseField>
+
+<ResponseField name="pseudocode_label_color" type="QColor">
+  Color for labels
+</ResponseField>
+
+<ResponseField name="pseudocode_highlight_color" type="QColor">
+  Highlight color for pseudocode
+</ResponseField>
+
+### Hex View Colors
+
+<ResponseField name="hex_view_selection_color" type="QColor">
+  Selection color in hex view
+</ResponseField>
+
+<ResponseField name="hex_view_data_color" type="QColor">
+  Color for data bytes
+</ResponseField>
+
+<ResponseField name="hex_view_string_color" type="QColor">
+  Color for string bytes
+</ResponseField>
+
+<ResponseField name="hex_view_instruction_color" type="QColor">
+  Color for instruction bytes
+</ResponseField>
+
+### Function Table Colors
+
+<ResponseField name="function_table_color" type="QColor">
+  Default color for functions
+</ResponseField>
+
+<ResponseField name="function_table_syscall_color" type="QColor">
+  Color for syscall functions
+</ResponseField>
+
+<ResponseField name="function_table_plt_color" type="QColor">
+  Color for PLT functions
+</ResponseField>
+
+<ResponseField name="function_table_simprocedure_color" type="QColor">
+  Color for SimProcedures
+</ResponseField>
+
+<ResponseField name="function_table_alignment_color" type="QColor">
+  Color for alignment functions
+</ResponseField>
+
+<ResponseField name="function_table_signature_bg_color" type="QColor">
+  Background color for functions with signatures
+</ResponseField>
+
+### Plugin Settings
+
+<ResponseField name="plugin_search_path" type="str">
+  Search path for plugins (colon-separated)
+</ResponseField>
+
+<ResponseField name="enabled_plugins" type="str">
+  Comma-separated list of enabled plugin names
+</ResponseField>
+
+### Network Settings
+
+<ResponseField name="http_proxy" type="str">
+  HTTP proxy URL
+</ResponseField>
+
+<ResponseField name="https_proxy" type="str">
+  HTTPS proxy URL
+</ResponseField>
+
+### LLM Settings
+
+<ResponseField name="llm_model" type="str">
+  LLM model identifier (e.g., "gpt-4")
+</ResponseField>
+
+<ResponseField name="llm_api_key" type="str">
+  API key for LLM service
+</ResponseField>
+
+<ResponseField name="llm_api_base" type="str">
+  Base URL for LLM API
+</ResponseField>
+
+<ResponseField name="llm_preload_callees" type="bool" default="False">
+  Whether to preload callee information for LLM context
+</ResponseField>
+
+<ResponseField name="llm_auto_rename_variables" type="bool" default="False">
+  Automatically rename variables using LLM suggestions
+</ResponseField>
+
+<ResponseField name="llm_auto_rename_function" type="bool" default="False">
+  Automatically rename functions using LLM suggestions
+</ResponseField>
+
+<ResponseField name="llm_auto_retype_variables" type="bool" default="False">
+  Automatically retype variables using LLM suggestions
+</ResponseField>
+
+<ResponseField name="llm_auto_summarize" type="bool" default="False">
+  Automatically generate function summaries using LLM
+</ResponseField>
+
+### Other Settings
+
+<ResponseField name="enabled_tabs" type="str">
+  Comma-separated list of enabled tab names
+</ResponseField>
+
+<ResponseField name="recent_files" type="list[str]">
+  List of recently opened files
+</ResponseField>
+
+<ResponseField name="log_timestamp_format" type="str" default="%X">
+  Format string for log timestamps
+</ResponseField>
+
+<ResponseField name="flirt_signatures_root" type="str">
+  Root directory for FLIRT signatures
+</ResponseField>
+
+<ResponseField name="library_docs_root" type="str">
+  Root directory for library documentation
+</ResponseField>
+
+<ResponseField name="use_daemon" type="bool" default="False">
+  Whether to use daemon mode
+</ResponseField>
+
+### Methods
+
+#### init_font_config
+
+```python
+init_font_config() -> None
+```
+
+Initialize font configuration from Qt application defaults.
+
+#### recent_file
+
+```python
+recent_file(file_path: str) -> None
+```
+
+Add a file to the recent files list.
+
+<ParamField path="file_path" type="str" required>
+  Path to the file
+</ParamField>
+
+#### connect
+
+```python
+connect(key: str, func: Callable[[Any], None], init: bool) -> None
+```
+
+Connect a callback to be notified when a configuration value changes.
+
+<ParamField path="key" type="str" required>
+  Configuration key to watch
+</ParamField>
+
+<ParamField path="func" type="Callable[[Any], None]" required>
+  Callback function that receives the new value
+</ParamField>
+
+<ParamField path="init" type="bool" required>
+  If True, immediately call func with the current value
+</ParamField>
+
+#### disconnect
+
+```python
+disconnect(key: str, func: Callable[[Any], None]) -> None
+```
+
+Disconnect a callback from configuration change notifications.
+
+<ParamField path="key" type="str" required>
+  Configuration key
+</ParamField>
+
+<ParamField path="func" type="Callable[[Any], None]" required>
+  Callback function to disconnect
+</ParamField>
+
+#### parse_file
+
+```python
+@classmethod
+parse_file(cls, path: str, ignore_unknown_entries: bool = False) -> ConfigurationManager
+```
+
+Load configuration from a TOML file.
+
+<ParamField path="path" type="str" required>
+  Path to the configuration file
+</ParamField>
+
+<ParamField path="ignore_unknown_entries" type="bool" default="False">
+  Whether to ignore unknown configuration entries
+</ParamField>
+
+<ResponseField name="return" type="ConfigurationManager">
+  The loaded configuration manager
+</ResponseField>
+
+#### save_file
+
+```python
+save_file(path: str) -> None
+```
+
+Save configuration to a TOML file.
+
+<ParamField path="path" type="str" required>
+  Path to save the configuration file
+</ParamField>
+
+#### reinterpet
+
+```python
+reinterpet() -> None
+```
+
+Reinterpret configuration entries. Useful after loading plugins that add new configuration options.
+
+#### attempt_importing_initial_config
+
+```python
+attempt_importing_initial_config() -> bool
+```
+
+Look for and import initial configuration file (am_initial_config).
+
+<ResponseField name="return" type="bool">
+  True if successfully imported, False otherwise
+</ResponseField>
+
+### Utility Functions
+
+#### save_config
+
+```python
+from angrmanagement.config import save_config
+
+save_config()
+```
+
+Save the global configuration to disk.
+
+## Configuration File Location
+
+The configuration file is automatically located in the platform-specific configuration directory:
+
+- **Linux**: `~/.config/angr-management/config.toml`
+- **macOS**: `~/Library/Application Support/angr-management/config.toml`
+- **Windows**: `%APPDATA%/angr-management/config.toml`
+
+## Example Usage
+
+```python
+from angrmanagement.config import Conf, save_config
+from PySide6.QtGui import QFont, QColor
+
+# Read configuration
+print(f"Current font: {Conf.disasm_font.family()}")
+print(f"Background color: {Conf.disasm_view_background_color.name()}")
+
+# Modify configuration
+Conf.disasm_font = QFont("Courier New", 12)
+Conf.disasm_view_background_color = QColor("#2b2b2b")
+
+# Listen for changes
+def on_font_changed(new_font):
+    print(f"Font changed to: {new_font.family()}")
+
+Conf.connect("disasm_font", on_font_changed, init=True)
+
+# Save changes
+save_config()
+```

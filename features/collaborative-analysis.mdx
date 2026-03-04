@@ -1,0 +1,375 @@
+---
+title: Collaborative Analysis
+description: Real-time collaboration with BinSync integration
+---
+
+angr Management supports collaborative reverse engineering through BinSync integration, enabling teams to work together on binary analysis in real-time.
+
+## What is BinSync?
+
+BinSync is a collaborative reverse engineering plugin that synchronizes analysis data across multiple analysts working on the same binary. It enables:
+
+- **Real-time synchronization** of function names, comments, and types
+- **Multi-user collaboration** with conflict resolution
+- **Version control** for reverse engineering artifacts
+- **Multiple backend support** (Git, LibBS)
+
+## Installation
+
+BinSync is available as a plugin for angr Management.
+
+### Plugin Configuration
+
+The BinSync plugin is located at `angrmanagement/plugins/angr_binsync/` and is configured via `plugin.toml` (`angrmanagement/plugins/angr_binsync/plugin.toml:4`):
+
+```toml
+[plugin]
+name = "BinSync"
+shortname = "binsync"
+version = "0.0.0"
+platforms = ["windows", "linux", "macos"]
+author = "The BinSync Team"
+entrypoints = ["__init__.py"]
+```
+
+### Enabling BinSync
+
+To enable BinSync in angr Management:
+
+1. Navigate to **Plugins** menu
+2. Enable **BinSync** plugin
+3. Restart angr Management if required
+
+Or enable it via configuration:
+
+```python
+# Add to enabled plugins
+Conf.enabled_plugins = "binsync,..."
+```
+
+## Plugin Architecture
+
+The BinSync plugin integrates with angr Management through the plugin system (`angrmanagement/plugins/angr_binsync/__init__.py:3`):
+
+```python
+from binsync.interface_overrides.angr import BinsyncPlugin
+
+__all__ = ["BinsyncPlugin"]
+```
+
+The plugin extends `BasePlugin` and implements collaboration-specific hooks:
+
+- **Variable synchronization**: Share renamed variables across users
+- **Function synchronization**: Synchronize function names and prototypes
+- **Comment synchronization**: Share comments and annotations
+- **Type synchronization**: Synchronize struct and type definitions
+
+## Collaborative Features
+
+### Function Renaming
+
+When you rename a function, BinSync automatically syncs it to other users:
+
+```python
+# Plugin hooks into function rename events
+def handle_function_renamed(self, func, old_name: str, new_name: str) -> bool:
+    # Synchronize the rename to other users
+    self.sync_function_name(func.addr, new_name)
+    return True
+```
+
+### Variable Renaming
+
+Local variables and function arguments are synchronized:
+
+```python
+# Stack variable renaming
+def handle_stack_var_renamed(
+    self, func, offset: int, old_name: str, new_name: str
+) -> bool:
+    self.sync_stack_variable(func.addr, offset, new_name)
+    return True
+
+# Function argument renaming  
+def handle_func_arg_renamed(
+    self, func, offset: int, old_name: str, new_name: str
+) -> bool:
+    self.sync_function_argument(func.addr, offset, new_name)
+    return True
+```
+
+### Type Synchronization
+
+Type changes are shared across the team:
+
+```python
+# Variable retyping
+def handle_stack_var_retyped(self, func, offset: int, old_type, new_type) -> bool:
+    self.sync_variable_type(func.addr, offset, new_type)
+    return True
+
+# Struct changes
+def handle_struct_changed(self, old_struct, new_struct) -> bool:
+    self.sync_struct_definition(new_struct)
+    return True
+```
+
+### Comment Synchronization
+
+Comments and annotations are shared in real-time:
+
+```python
+def handle_comment_changed(
+    self, address, old_cmt, new_cmt, created: bool, decomp: bool
+) -> bool:
+    self.sync_comment(address, new_cmt, is_decompiler=decomp)
+    return True
+```
+
+## Plugin System Integration
+
+BinSync leverages angr Management's plugin system to hook into reverse engineering events.
+
+### Plugin Lifecycle
+
+The plugin follows the standard lifecycle (`angrmanagement/plugins/base_plugin.py:27`):
+
+```python
+class BinsyncPlugin(BasePlugin):
+    DISPLAY_NAME = "BinSync"
+    REQUIRE_WORKSPACE = True
+    
+    def __init__(self, workspace: Workspace) -> None:
+        super().__init__(workspace)
+        # Initialize BinSync client
+        self.client = BinsyncClient()
+        
+    def teardown(self) -> None:
+        # Clean up connections
+        self.client.disconnect()
+```
+
+### Event Handlers
+
+BinSync implements plugin event handlers to capture user actions:
+
+<Tabs>
+  <Tab title="Function Events">
+    ```python
+    def handle_function_renamed(self, func, old_name, new_name):
+        # Sync function rename
+        pass
+    
+    def handle_function_retyped(self, func, old_type, new_type):
+        # Sync function type change
+        pass
+    ```
+  </Tab>
+  
+  <Tab title="Variable Events">
+    ```python
+    def handle_stack_var_renamed(self, func, offset, old_name, new_name):
+        # Sync stack variable rename
+        pass
+    
+    def handle_global_var_renamed(self, address, old_name, new_name):
+        # Sync global variable rename
+        pass
+    ```
+  </Tab>
+  
+  <Tab title="Comment Events">
+    ```python
+    def handle_comment_changed(self, address, old_cmt, new_cmt, created, decomp):
+        # Sync comment changes
+        pass
+    ```
+  </Tab>
+</Tabs>
+
+### Data Persistence
+
+BinSync can persist data in angr databases (`angrmanagement/plugins/base_plugin.py:70`):
+
+```python
+def angrdb_store_entries(self):
+    # Store BinSync state in database
+    yield ("last_sync_time", str(time.time()))
+    yield ("sync_user", self.username)
+    yield ("sync_repo", self.repo_path)
+
+def angrdb_load_entry(self, key: str, value: str) -> None:
+    # Restore BinSync state from database
+    if key == "last_sync_time":
+        self.last_sync = float(value)
+    elif key == "sync_user":
+        self.username = value
+```
+
+## Collaboration Workflow
+
+### Setting Up a Shared Repository
+
+1. **Initialize repository**: Create a Git repository for shared analysis data
+2. **Configure BinSync**: Point BinSync to the repository
+3. **Set user identity**: Configure your username for attribution
+4. **Initial sync**: Pull existing analysis data
+
+### Working Collaboratively
+
+<Steps>
+  <Step title="Load Binary">
+    Each analyst loads the same binary in angr Management
+  </Step>
+  
+  <Step title="Connect to Repository">
+    Configure BinSync to connect to the shared repository
+  </Step>
+  
+  <Step title="Pull Updates">
+    Fetch the latest analysis from other team members
+  </Step>
+  
+  <Step title="Perform Analysis">
+    Rename functions, add comments, define types - all automatically synced
+  </Step>
+  
+  <Step title="Push Changes">
+    Your changes are automatically pushed to the repository
+  </Step>
+  
+  <Step title="Resolve Conflicts">
+    BinSync handles merge conflicts when multiple users edit the same item
+  </Step>
+</Steps>
+
+### Conflict Resolution
+
+When multiple analysts modify the same data:
+
+- **Automatic merging**: Compatible changes are merged automatically
+- **Conflict detection**: Incompatible changes are flagged
+- **Manual resolution**: Users can choose which version to keep
+- **Version history**: Previous versions are preserved
+
+## Backend Options
+
+BinSync supports multiple backend storage options:
+
+<CardGroup cols={2}>
+  <Card title="Git Backend" icon="git">
+    Uses Git repositories for version control and collaboration
+    - Full version history
+    - Distributed workflow
+    - Standard Git tools
+  </Card>
+  
+  <Card title="LibBS Backend" icon="database">
+    Custom BinSync backend for optimized synchronization
+    - Faster sync times
+    - Real-time updates
+    - Conflict resolution
+  </Card>
+</CardGroup>
+
+## Security Considerations
+
+<Warning>
+  BinSync synchronizes analysis data to a shared repository. Consider:
+  - **Access control**: Restrict repository access to authorized team members
+  - **Sensitive data**: Avoid committing proprietary binaries
+  - **Authentication**: Use SSH keys or secure credentials
+  - **Network security**: Use VPN or secure networks for repository access
+</Warning>
+
+## Advanced Features
+
+### Custom Synchronization
+
+Extend BinSync to sync custom data:
+
+```python
+class CustomBinSyncPlugin(BinsyncPlugin):
+    def angrdb_store_entries(self):
+        # Store custom analysis data
+        for entry in super().angrdb_store_entries():
+            yield entry
+        
+        # Add custom data
+        yield ("custom_data", json.dumps(self.my_data))
+```
+
+### Selective Synchronization
+
+Choose what data to synchronize:
+
+```python
+# Configure sync settings
+self.sync_functions = True
+self.sync_variables = True
+self.sync_comments = True
+self.sync_types = False  # Don't sync type changes
+```
+
+### Multi-Project Collaboration
+
+Work on multiple projects simultaneously:
+
+```python
+# Switch between projects
+self.client.switch_project("project_name")
+
+# List available projects
+projects = self.client.list_projects()
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Communication">
+    - Use descriptive function names that convey intent
+    - Add comments explaining complex logic
+    - Communicate with team about major changes
+    - Use consistent naming conventions
+  </Accordion>
+  
+  <Accordion title="Workflow">
+    - Pull updates before starting work
+    - Work on different functions to avoid conflicts
+    - Push changes frequently for better collaboration
+    - Review other analysts' changes regularly
+  </Accordion>
+  
+  <Accordion title="Organization">
+    - Establish naming conventions for the team
+    - Document analysis decisions
+    - Use tags or prefixes for different analysis areas
+    - Maintain a shared knowledge base
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+### Sync Issues
+
+If synchronization fails:
+
+1. Check repository connectivity
+2. Verify credentials and permissions
+3. Resolve merge conflicts manually
+4. Check BinSync logs for errors
+
+### Performance
+
+For large projects:
+
+- Use selective synchronization
+- Sync less frequently for huge binaries
+- Consider splitting analysis into modules
+- Optimize repository size
+
+## See Also
+
+- [Plugin System](/features/plugins) - Learn about the plugin architecture
+- [BinSync Documentation](https://binsync.net) - Official BinSync documentation
+- [Plugin Development](/development/plugin-system) - Create custom collaboration features

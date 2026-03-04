@@ -1,0 +1,386 @@
+---
+title: Views
+description: Understanding the different analysis views in angr Management
+---
+
+angr Management provides numerous specialized views for different aspects of binary analysis. Each view is designed for a specific task and can be arranged in the workspace according to your needs.
+
+## Core Views
+
+### Disassembly View
+
+The primary view for examining assembly code.
+
+<Card title="Features" icon="microchip">
+  - Graph and linear display modes
+  - Multiple representation levels (machine code, VEX IR, AIL)
+  - Smart highlighting and cross-references
+  - Integrated variable information
+  - Comment and annotation support
+</Card>
+
+See the [Disassembly](/user-guide/disassembly) page for detailed information.
+
+### Pseudocode View
+
+Displays decompiled C-like code for easier analysis.
+
+<Card title="Features" icon="code">
+  - Syntax highlighting
+  - Variable and function renaming
+  - Type annotations
+  - Navigation to/from disassembly
+  - Multiple decompilation flavors
+  - AI-assisted refinement
+</Card>
+
+See the [Decompilation](/user-guide/decompilation) page for detailed information.
+
+### Hex View
+
+Classic hex editor for viewing and modifying raw binary data.
+
+<Card title="Features" icon="binary">
+  - Byte and ASCII representation
+  - Patch creation and modification
+  - Breakpoint highlighting
+  - Synchronized cursor with other views
+  - Data source selection (loader/debugger)
+</Card>
+
+## Navigation Views
+
+### Functions View
+
+<Tabs>
+  <Tab title="Overview">
+    Lists all functions detected in the binary with:
+    - Function addresses and names
+    - Size information
+    - Color-coded by type (syscall, PLT, SimProcedure)
+    - Sortable columns
+    - Search and filter capabilities
+  </Tab>
+  <Tab title="Function Types">
+    Functions are color-coded:
+    - **Black**: Normal functions
+    - **Blue**: Syscalls
+    - **Green**: PLT stubs
+    - **Red**: SimProcedures
+    - **Purple**: Alignment functions
+    - **Cyan background**: Functions with FLIRT signatures
+  </Tab>
+</Tabs>
+
+**Quick Actions:**
+- Double-click to navigate to a function
+- Right-click for context menu
+- Multi-select for batch operations
+
+### Strings View
+
+Displays all strings found in the binary:
+
+- String content and address
+- Length and encoding information
+- Context (which functions reference each string)
+- Click to jump to string location
+- Export functionality
+
+## Analysis Views
+
+### Proximity View
+
+Visualizes data flow and relationships around a function:
+
+<Steps>
+  <Step title="Function Calls">
+    Shows which functions are called
+  </Step>
+  <Step title="Data References">
+    Displays accessed strings and constants
+  </Step>
+  <Step title="Variable Usage">
+    Maps variable relationships
+  </Step>
+</Steps>
+
+### Data Dependency View
+
+Shows data flow analysis results:
+
+- Variable dependencies
+- Memory operations
+- Register usage
+- Taint propagation
+
+<Note>
+Requires the Operation Mango plugin for full functionality.
+</Note>
+
+### Call Explorer View
+
+Interactive call graph exploration:
+
+- Function call hierarchy
+- Caller/callee relationships
+- Path exploration
+- Call depth visualization
+
+### Types View
+
+Manage type information:
+
+- View and edit type definitions
+- Create custom structures
+- Import type libraries
+- Apply types to variables
+
+## Debugging Views
+
+### Breakpoints View
+
+Manage all breakpoints in one place:
+
+<CardGroup cols={2}>
+  <Card title="Breakpoint Types" icon="circle-stop">
+    - Execution breakpoints
+    - Read breakpoints
+    - Write breakpoints
+  </Card>
+  <Card title="Management" icon="list">
+    - Add/remove/edit breakpoints
+    - Enable/disable toggles
+    - Comments and descriptions
+  </Card>
+</CardGroup>
+
+### Registers View
+
+Displays CPU register values during debugging:
+
+- Current register state
+- Value changes highlighted
+- Support for all architecture registers
+- Modify register values
+
+### Stack View
+
+Shows the current stack state:
+
+- Stack frame visualization
+- Return addresses
+- Local variables
+- Stack pointer tracking
+
+### States View
+
+Manages symbolic execution states:
+
+- Active simulation managers
+- State hierarchy
+- Constraints and conditions
+- State exploration controls
+
+### Traces View
+
+Work with execution traces:
+
+- Load and visualize traces
+- Step through execution
+- Compare different runs
+- Export trace data
+
+### Trace Map View
+
+Visual representation of code coverage:
+
+- Heat map of executed code
+- Identify hot paths
+- Coverage analysis
+- Interactive navigation
+
+## Modification Views
+
+### Patches View
+
+Manage all binary patches:
+
+<Accordion title="Patch Operations">
+  - View all applied patches
+  - Revert individual patches
+  - Merge adjacent patches
+  - Add comments to patches
+  - Export patched binary
+</Accordion>
+
+**Patch Information:**
+- Address and size
+- Original vs. new bytes
+- Comments
+- Status indicators
+
+## Symbolic Execution Views
+
+### Symbolic Execution View
+
+Control symbolic execution:
+
+- Simulation manager interface
+- State management
+- Path exploration controls
+- Find/avoid address configuration
+- Constraints viewer
+
+## Utility Views
+
+### Console View
+
+Interactive IPython console:
+
+```python
+# Access the current project
+>>> proj = workspace.main_instance.project
+>>> proj.arch
+<Arch AMD64 (LE)>
+
+# Get current function
+>>> func = workspace.main_instance.kb.functions[0x401000]
+>>> func.name
+'main'
+
+# Run custom analysis
+>>> cfg = proj.analyses.CFGFast()
+```
+
+**Features:**
+- Full Python environment
+- Direct access to angr APIs
+- Current function context
+- Tab completion
+- Command history
+
+### Log View
+
+Displays logging output:
+
+- Analysis progress messages
+- Warning and error messages
+- Debug information
+- Filterable by log level
+- Timestamp formatting
+
+### Jobs View
+
+Monitors background analysis jobs:
+
+- Active and queued jobs
+- Progress indicators
+- Job cancellation
+- Completion status
+- Error reporting
+
+## Signature Analysis
+
+### Signatures View
+
+Manage FLIRT signatures:
+
+- Detected library functions
+- Signature matches
+- Confidence scores
+- Apply/remove signatures
+- Import signature files
+
+## View Management
+
+### Opening Views
+
+<Tabs>
+  <Tab title="Via Menu">
+    Navigate to **View** menu and select the desired view.
+  </Tab>
+  <Tab title="Via Command Palette">
+    1. Press `Ctrl+Shift+P`
+    2. Type "View:"
+    3. Select from available views
+  </Tab>
+  <Tab title="Via Shortcuts">
+    Use `Alt+1` through `Alt+9` to switch between open views.
+  </Tab>
+</Tabs>
+
+### Arranging Views
+
+1. **Drag and Drop**: Drag view tabs to reposition
+2. **Dock Areas**: Drop zones appear when dragging
+3. **Floating Windows**: Drag outside main window to float
+4. **Auto-Hide**: Right-click view title bar
+
+### View Synchronization
+
+Some views support synchronization:
+
+<Steps>
+  <Step title="Enable Sync">
+    Right-click in a view and select "Synchronize with"
+  </Step>
+  <Step title="Choose Views">
+    Select which views to synchronize
+  </Step>
+  <Step title="Navigate">
+    Cursor and selection will sync across views
+  </Step>
+</Steps>
+
+**Synchronized Features:**
+- Cursor position
+- Highlight regions
+- Address navigation
+
+## Creating New Views
+
+Some views support multiple instances:
+
+- **New Disassembly (Graph)**: Create additional disassembly views
+- **New Disassembly (Linear)**: Create linear disassembly views
+- **New Hex**: Create additional hex editors
+
+<Tip>
+Use multiple disassembly views to compare different functions or view the same function at different representation levels.
+</Tip>
+
+## View Shortcuts
+
+Quick access to views via keyboard:
+
+| Command | Action |
+|---------|--------|
+| View: Disassembly (Graph) | Show graph disassembly |
+| View: Disassembly (Linear) | Show linear disassembly |
+| View: Pseudocode | Show decompiled code |
+| View: Hex | Show hex editor |
+| View: Functions | Show functions list |
+| View: Console | Show Python console |
+| View: Breakpoints | Show breakpoints table |
+
+<Tip>
+Access these via the command palette (`Ctrl+Shift+P`) for quick view switching.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Disassembly" icon="microchip" href="/user-guide/disassembly">
+    Deep dive into the disassembly view
+  </Card>
+  <Card title="Decompilation" icon="code" href="/user-guide/decompilation">
+    Master the pseudocode view
+  </Card>
+  <Card title="Debugging" icon="bug" href="/user-guide/debugging">
+    Learn debugging workflows
+  </Card>
+  <Card title="Patching" icon="wrench" href="/user-guide/patching">
+    Modify binaries with patches
+  </Card>
+</CardGroup>

@@ -1,0 +1,657 @@
+---
+title: Theming
+description: Customizing the appearance of angr Management with themes and styles
+---
+
+## Overview
+
+angr Management supports comprehensive theming through Qt StyleSheets (CSS-like syntax) and a color configuration system. Themes control the appearance of all UI elements including windows, docks, menus, and custom widgets.
+
+## Theme Structure
+
+Themes are located in `angrmanagement/resources/themes/` with the following structure:
+
+```
+themes/
+├── base.css                    # Base styles for all themes
+├── Light/
+│   ├── theme.css              # Light theme overrides
+│   └── images/
+│       ├── close.svg
+│       ├── drawing-pin-light.svg
+│       ├── minimize-button.svg
+│       └── tab-menu.svg
+├── Dark/
+│   ├── theme.css              # Dark theme overrides
+│   └── images/
+│       ├── close.svg
+│       ├── drawing-pin.svg
+│       ├── minimize-button.svg
+│       └── tab-menu.svg
+├── Dracula/
+│   └── theme.css
+└── Catppuccin Mocha/
+    └── theme.css
+```
+
+## Built-in Themes
+
+### Available Themes
+
+1. **Light** - Default light theme
+2. **Dark** - Dark theme with improved contrast
+3. **Dracula** - Popular dark theme
+4. **Catppuccin Mocha** - Warm, pastel dark theme
+
+### Switching Themes
+
+Themes can be changed through Preferences or configuration:
+
+```python
+from angrmanagement.config import Conf, save_config
+
+# Set theme
+Conf.theme_name = "Dark"
+Conf.base_theme_name = "Dark"
+
+# Save configuration
+save_config()
+```
+
+## Base Stylesheet
+
+The `base.css` file defines common styles used by all themes:
+
+### Widget Styles
+
+```css
+/* Instruction labels */
+QLabel[class=insn] {
+    font: 10pt courier new;
+    color: #000080;
+}
+
+/* Register viewer */
+QLabel[class=reg_viewer_label] {
+    font: 10pt courier new;
+    background-color: #ffffff;
+}
+
+/* Memory address labels */
+QLabel[class=memory_viewer_address] {
+    font: 10pt courier new;
+}
+
+/* Status indicators */
+QLabel[class=status_valid] {
+    color: green;
+}
+
+QLabel[class=status_invalid] {
+    color: red;
+}
+
+/* Selected instruction */
+QFrame[class=insn_selected] {
+    font: 10pt courier new;
+    color: #000000;
+    background-color: #efbfba;
+}
+```
+
+### Block Styles
+
+```css
+/* Block container */
+QBlock {
+    border: 1px solid black;
+}
+
+/* Block labels */
+QBlockLabel {
+    color: #0000ff;
+}
+
+/* Instruction address */
+QLabel[class=insn_addr] {
+    font: 10pt courier new;
+    color: black;
+}
+
+/* String literals */
+QLabel[class=insn_string] {
+    font: 10pt courier new;
+    color: gray;
+    font-weight: bold;
+}
+```
+
+### Dock Widget Styles
+
+angr Management uses Qt Advanced Docking System (QtAds):
+
+```css
+/* Dock container */
+ads--CDockContainerWidget {
+    background: palette(shadow);
+}
+
+/* Dock area widget */
+ads--CDockAreaWidget {
+    background: palette(mid);
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+/* Dock widget tabs */
+ads--CDockWidgetTab {
+    background: palette(midlight);
+    border-style: solid;
+    border-width: 3px 0 0 0;
+    border-color: palette(light);
+    padding: 4px 5px;
+    margin-right: 1px;
+    qproperty-iconSize: 20px 20px;
+}
+
+/* Active tab */
+ads--CDockWidgetTab[activeTab="true"] {
+    border-color: palette(highlight);
+    background: palette(window);
+}
+```
+
+### Auto-Hide Sidebar
+
+```css
+/* Auto-hide tabs */
+ads--CAutoHideTab {
+    background: palette(mid);
+    border: none;
+    min-height: 20px;
+    padding: 4px 5px;
+    qproperty-iconSize: 20px 20px;
+}
+
+ads--CAutoHideTab[activeTab="true"] {
+    border-color: palette(highlight);
+    background: palette(window);
+}
+
+/* Auto-hide sidebar */
+ads--CAutoHideSideBar {
+    background: palette(mid);
+    border: none;
+}
+
+/* Auto-hide container */
+ads--CAutoHideDockContainer {
+    background: palette(window);
+}
+```
+
+### Buttons and Icons
+
+```css
+/* Close button */
+#tabCloseButton {
+    border: none;
+    padding: 0px -2px;
+    qproperty-icon: url("$theme/images/close.svg");
+    qproperty-iconSize: 15px;
+}
+
+#tabCloseButton:hover {
+    background: rgba(0, 0, 0, 24);
+}
+
+/* Tab menu button */
+#tabsMenuButton {
+    qproperty-icon: url("$theme/images/tab-menu.svg");
+    qproperty-iconSize: 15px;
+}
+
+/* Auto-hide pin button */
+#dockAreaAutoHideButton {
+    qproperty-icon: url("$theme/images/drawing-pin.svg");
+    qproperty-iconSize: 15px;
+}
+```
+
+## Creating Custom Themes
+
+### 1. Create Theme Directory
+
+```bash
+mkdir -p ~/.local/share/angr-management/themes/MyTheme/images
+```
+
+### 2. Create theme.css
+
+Create `~/.local/share/angr-management/themes/MyTheme/theme.css`:
+
+```css
+/* Override dock area background */
+ads--CDockAreaWidget {
+    background: #2b2b2b;
+}
+
+/* Override tab colors */
+ads--CDockWidgetTab {
+    background: #3c3c3c;
+    border-color: #4a4a4a;
+}
+
+ads--CDockWidgetTab[activeTab="true"] {
+    border-color: #007acc;
+    background: #1e1e1e;
+}
+
+/* Override menu bar */
+QMenuBar {
+    background-color: #2b2b2b;
+    color: #cccccc;
+}
+
+/* Override toolbar */
+QMainWindow > QToolBar {
+    background-color: #2b2b2b;
+    border: 0;
+}
+
+/* Override status bar */
+QStatusBar {
+    background-color: #2b2b2b;
+    color: #cccccc;
+}
+```
+
+### 3. Add Theme Icons
+
+Copy or create SVG icons:
+
+```bash
+cp /path/to/close.svg ~/.local/share/angr-management/themes/MyTheme/images/
+cp /path/to/drawing-pin.svg ~/.local/share/angr-management/themes/MyTheme/images/
+cp /path/to/minimize-button.svg ~/.local/share/angr-management/themes/MyTheme/images/
+cp /path/to/tab-menu.svg ~/.local/share/angr-management/themes/MyTheme/images/
+```
+
+### 4. Reference Theme Icons
+
+Use the `$theme` variable to reference icon paths:
+
+```css
+#tabCloseButton {
+    qproperty-icon: url("$theme/images/close.svg");
+}
+```
+
+## Color Configuration
+
+Colors can be configured programmatically through the configuration system.
+
+### Accessing Colors
+
+```python
+from angrmanagement.config import Conf
+from PySide6.QtGui import QColor, QPen
+
+# Access color values
+node_bg = Conf.disasm_view_node_background_color  # QColor
+node_border = Conf.disasm_view_node_border_color
+selected_border = Conf.disasm_view_selected_node_border_color
+
+# Use in painting
+painter.setBrush(node_bg)
+painter.setPen(QPen(node_border, 1.5))
+```
+
+### Common Color Configuration Options
+
+```python
+# Disassembly view colors
+Conf.disasm_view_node_background_color          # Block background
+Conf.disasm_view_node_border_color              # Block border
+Conf.disasm_view_selected_node_border_color     # Selected block border
+Conf.disasm_view_node_shadow_color              # Block shadow
+Conf.disasm_view_node_zoomed_out_background_color  # Zoomed out blocks
+
+# Instruction colors
+Conf.disasm_view_operand_color                  # Operand text
+Conf.disasm_view_operand_highlight_color        # Highlighted operand
+Conf.disasm_view_label_color                    # Label text
+Conf.disasm_view_branch_color                   # Branch instructions
+```
+
+### Defining Custom Colors
+
+Colors can be set in configuration files or code:
+
+```python
+from PySide6.QtGui import QColor
+from angrmanagement.config import Conf, save_config
+
+# Set custom colors
+Conf.disasm_view_node_background_color = QColor("#1e1e1e")
+Conf.disasm_view_node_border_color = QColor("#3c3c3c")
+Conf.disasm_view_selected_node_border_color = QColor("#007acc")
+
+# Save configuration
+save_config()
+```
+
+### Color Schemes
+
+Color schemes are defined in `angrmanagement/config/color_schemes.py`:
+
+```python
+from angrmanagement.config.color_schemes import COLOR_SCHEMES
+
+# Access color scheme
+light_scheme = COLOR_SCHEMES["Light"]
+dark_scheme = COLOR_SCHEMES["Dark"]
+
+# Color scheme properties
+scheme = {
+    "disasm_view_node_background_color": QColor("#ffffff"),
+    "disasm_view_node_border_color": QColor("#000000"),
+    # ... more colors
+}
+```
+
+## Font Configuration
+
+### Disassembly Font
+
+```python
+from angrmanagement.config import Conf
+from PySide6.QtGui import QFont
+
+# Access current font
+current_font = Conf.disasm_font
+print(f"Family: {current_font.family()}")
+print(f"Size: {current_font.pointSize()}")
+print(f"Weight: {current_font.weight()}")
+
+# Set new font
+new_font = QFont("Consolas", 10, QFont.Weight.Normal)
+Conf.disasm_font = new_font
+```
+
+### Font Parsing
+
+Fonts are stored in configuration as strings:
+
+```python
+# Format: "<size>px||<family>||<weight>"
+font_string = "10px||Courier New||400"
+
+# Parse font
+from angrmanagement.config.config_manager import font_parser
+font = font_parser("disasm_font", font_string)
+
+# Serialize font
+from angrmanagement.config.config_manager import font_serializer
+font_str = font_serializer("disasm_font", font)
+```
+
+## Theme-Specific Customization
+
+### Dark Theme Example
+
+From `Dark/theme.css`:
+
+```css
+/* Dock area - darker background */
+ads--CDockAreaWidget {
+    background: palette(dark);
+}
+
+/* Tabs - mid tone */
+ads--CDockWidgetTab {
+    background: palette(mid);
+    border-color: palette(light);
+}
+
+/* Menu bar */
+QMenuBar {
+    background-color: palette(dark);
+}
+
+/* Toolbar */
+QMainWindow > QToolBar {
+    background-color: palette(dark);
+    border: 0;
+}
+
+/* Status bar */
+QStatusBar {
+    background-color: palette(dark);
+}
+
+/* Auto-hide elements */
+ads--CAutoHideTab {
+    background: palette(shadow);
+}
+
+ads--CAutoHideSideBar {
+    background: palette(shadow);
+}
+```
+
+### Light Theme Example
+
+From `Light/theme.css`:
+
+```css
+/* Use light-colored pin icon */
+ads--CAutoHideDockContainer #dockAreaAutoHideButton {
+    qproperty-icon: url("$theme/images/drawing-pin-light.svg");
+    qproperty-iconSize: 15px;
+}
+```
+
+## Applying Themes to Custom Widgets
+
+### Using Style Classes
+
+```python
+from PySide6.QtWidgets import QLabel
+
+# Set object property for styling
+label = QLabel("Address: 0x401000")
+label.setProperty("class", "insn_addr")
+
+# CSS can now target this:
+# QLabel[class=insn_addr] { color: blue; }
+```
+
+### Programmatic Styling
+
+```python
+from PySide6.QtWidgets import QWidget
+from angrmanagement.config import Conf
+
+class CustomWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._apply_theme()
+    
+    def _apply_theme(self):
+        # Use theme colors
+        bg_color = Conf.disasm_view_node_background_color
+        border_color = Conf.disasm_view_node_border_color
+        
+        # Apply stylesheet
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {bg_color.name()};
+                border: 1px solid {border_color.name()};
+            }}
+        """)
+```
+
+### Responding to Theme Changes
+
+```python
+from angrmanagement.config import Conf
+
+class ThemedWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        # Subscribe to theme changes
+        Conf.theme_name.changed.connect(self._on_theme_changed)
+        
+        self._apply_theme()
+    
+    def _on_theme_changed(self, new_theme):
+        """Called when theme changes"""
+        self._apply_theme()
+        self.update()
+    
+    def _apply_theme(self):
+        # Reapply colors/styles
+        pass
+```
+
+## Advanced Theming
+
+### Custom Drawing with Theme Colors
+
+```python
+from PySide6.QtGui import QPainter, QPen, QBrush
+from PySide6.QtWidgets import QWidget
+from angrmanagement.config import Conf
+
+class CustomGraphicsItem(QWidget):
+    def paint(self, painter: QPainter, option, widget=None):
+        # Use theme colors
+        bg_color = Conf.disasm_view_node_background_color
+        border_color = Conf.disasm_view_node_border_color
+        
+        painter.setBrush(QBrush(bg_color))
+        painter.setPen(QPen(border_color, 1.5))
+        painter.drawRect(self.boundingRect())
+```
+
+### Palette-Based Styling
+
+Qt palettes work with theme CSS:
+
+```css
+/* CSS uses palette colors */
+QWidget {
+    background-color: palette(window);
+    color: palette(text);
+}
+
+QWidget:disabled {
+    color: palette(disabled-text);
+}
+```
+
+Palette roles:
+- `window` - Main background
+- `windowText` - Main text
+- `base` - Input background
+- `text` - Input text
+- `button` - Button background
+- `buttonText` - Button text
+- `highlight` - Selection background
+- `highlightedText` - Selection text
+- `mid`, `dark`, `shadow` - Shading
+
+## Configuration File Format
+
+Theme settings in `~/.config/angr-management/config.toml`:
+
+```toml
+theme_name = "Dark"
+base_theme_name = "Dark"
+
+# Custom color overrides (optional)
+[colors]
+disasm_view_node_background_color = "ff1e1e1e"
+disasm_view_node_border_color = "ff3c3c3c"
+disasm_view_selected_node_border_color = "ff007acc"
+```
+
+Color format: `AARRGGBB` (alpha, red, green, blue in hex)
+
+## Best Practices
+
+### 1. Use Configuration Colors
+
+Always use `Conf` colors instead of hardcoding:
+
+```python
+# Good
+color = Conf.disasm_view_node_background_color
+
+# Bad
+color = QColor("#ffffff")
+```
+
+### 2. Test in Multiple Themes
+
+Test custom widgets in Light and Dark themes:
+
+```python
+# Temporarily switch themes for testing
+original_theme = Conf.theme_name
+Conf.theme_name = "Dark"
+# Test widget
+Conf.theme_name = original_theme
+```
+
+### 3. Use Relative Colors
+
+For derived colors, use relative adjustments:
+
+```python
+base_color = Conf.disasm_view_node_background_color
+lighter = base_color.lighter(120)  # 20% lighter
+darker = base_color.darker(120)    # 20% darker
+```
+
+### 4. Respect User Preferences
+
+Don't override user theme choices without permission:
+
+```python
+# Good - respects user theme
+color = Conf.disasm_view_node_background_color
+
+# Bad - forces specific color
+self.setStyleSheet("background: white;")
+```
+
+## Troubleshooting
+
+### Theme Not Loading
+
+1. Check theme directory exists
+2. Verify `theme.css` is valid CSS
+3. Check console for errors
+4. Ensure icon paths are correct
+
+### Colors Not Updating
+
+1. Call `self.update()` after color changes
+2. Check if widget caches colors
+3. Verify color is from `Conf`, not hardcoded
+
+### Icons Not Displaying
+
+1. Check `$theme/images/` path
+2. Verify SVG files exist
+3. Check file permissions
+4. Use absolute paths for debugging
+
+## Next Steps
+
+- Learn about [UI Components](/development/ui-components)
+- Create custom [Views and Widgets](/development/views-and-widgets)
+- Explore [Plugin Development](/development/plugin-system)

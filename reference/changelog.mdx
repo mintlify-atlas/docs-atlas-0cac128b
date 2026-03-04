@@ -1,0 +1,230 @@
+---
+title: Changelog
+description: Version history and release notes for angr Management
+---
+
+This page documents the changes, improvements, and bug fixes in each version of angr Management.
+
+## Version 9.2.204 (Latest)
+
+**Release Date:** March 2026
+
+### Features
+- Added function summarization support in the decompiler
+- Implemented LLM-assisted decompilation refinement for improved code quality
+- Enhanced disassembly graph caching with address and IR inclusion
+
+### Improvements
+- QLinearViewer now properly handles zero-sized objects
+- ProximityView updated to follow changes in ProximityGraphAnalysis
+- Decompiler now explicitly uses cache for better performance
+- Force cleanup of RuntimeDb at exit to prevent resource leaks
+
+### Bug Fixes
+- Fixed handling of new SideEffectStatement and Call expression types
+- Fixed cached object outdated detection
+- Fixed function splitting when redefining code
+
+## Version 9.2.203
+
+**Release Date:** February 2026
+
+### Improvements
+- Enhanced cache management in decompiler
+- Added more comprehensive tests for HexView
+
+### Bug Fixes
+- Properly handle SideEffectStatement in decompilation
+- Improved ProximityView compatibility with angr core changes
+
+## Version 9.2.202
+
+**Release Date:** February 2026
+
+### Improvements
+- Decompiler now uses explicit caching for better performance
+- Expanded test coverage for HexView
+
+## Version 9.2.201
+
+**Release Date:** February 2026
+
+### Bug Fixes
+- Minor stability improvements
+
+## Version 9.2.200
+
+**Release Date:** January 2026
+
+### Features
+- **Command Palette:** Added searchable command palette (Ctrl+Shift+P)
+- **Go-to Palette:** Implemented "go to anything" functionality (Shift+Shift)
+- Enhanced palette functionality for quick navigation and command execution
+
+### Testing
+- Added comprehensive tests for command palette functionality
+- Added tests for goto-anything feature
+- Added tests for palette shortcuts
+- Started testing framework for view actions (DisassemblyView, CodeView, HexView, DataDepView)
+
+### Code Quality
+- Applied ruff formatting across codebase
+- Migrated to ruff-format from older formatters
+- Added pyupgrade to pre-commit hooks
+- Improved type annotations in various context menus
+
+### Improvements
+- QBlock now accesses ins_addr tag explicitly for better type safety
+- QBlockCode tolerates addr being None
+- Improved base functionality separation for palette implementations
+
+### Bug Fixes
+- Fixed DisassemblyView._display_function to update self.function when send_event is False
+- XRefDialog now properly shows as modal dialog
+- DataDepView shows modal search dialog
+- Various popup dialogs no longer use deprecated async_ option
+
+## Version 9.2.199
+
+**Release Date:** January 2026
+
+### CI/CD
+- Trigger release workflow on version tag push
+- Improved automated release process
+
+### Testing
+- Started comprehensive testing of dialog components
+- Added tests for XRefDialog, DataDepView, HexView actions
+- Added tests for CodeView and DisassemblyView actions
+
+### Code Quality
+- Improved type annotations for context menus
+- Better separation of async and sync dialog patterns
+
+## Version 9.2.198
+
+**Release Date:** December 2025
+
+### Features
+- Added top-level boot function for improved external scriptability
+- Better support for programmatic usage and automation
+
+### Improvements
+- Enhanced external API for script integration
+
+## Version 9.2.195
+
+**Release Date:** December 2025
+
+### Features
+- **PE Symbol Search:** Added preliminary support for PE symbol search
+- Enhanced source code viewer to adapt to changes in CLE's addr_to_line
+
+### Improvements
+- Compatibility fixes for pycparser 3.0
+- Moved GUI-thread code execution to a separate class for better organization
+- DisasmView now uses FuncNode instead of Function objects for consistency
+- CodeView accesses CLabel ins_addr via tags
+
+### CI/CD
+- Configured workflow concurrency for better CI performance
+- Updated macOS-15-intel build configuration
+
+## Earlier Versions
+
+### Version 9.2.190 - 9.2.194
+
+These versions included incremental improvements, bug fixes, and dependency updates. Key themes:
+- Continuous improvement of decompilation quality
+- Enhanced testing coverage
+- Better error handling and stability
+- UI/UX refinements
+
+## Development Versions
+
+### Nightly Builds
+
+Nightly builds (version 9.2.205.dev0 and later) include the latest features and fixes but may be less stable:
+
+- Latest experimental features
+- Cutting-edge improvements from active development
+- May contain breaking changes
+- Recommended for developers and testers only
+
+To use nightly builds:
+```bash
+pip install git+https://github.com/angr/angr-management.git
+```
+
+## Version Numbering
+
+angr Management follows angr's version numbering scheme:
+- **Major.Minor.Patch** (e.g., 9.2.204)
+- Major version changes indicate significant architectural changes
+- Minor version changes indicate feature additions
+- Patch version changes indicate bug fixes and small improvements
+- Development versions append `.dev0` to the version number
+
+## Staying Updated
+
+### Latest Stable Release
+
+Install or update to the latest stable version:
+```bash
+pip install --upgrade angr-management
+```
+
+### Development Version
+
+For the latest features (may be unstable):
+```bash
+pip install --upgrade git+https://github.com/angr/angr-management.git
+```
+
+### Release Notifications
+
+- **GitHub Releases:** Watch releases at https://github.com/angr/angr-management/releases
+- **GitHub Watch:** Click "Watch" → "Releases only" on the repository
+- **RSS Feed:** Subscribe to the releases Atom feed
+
+## Contributing
+
+Want to contribute to future releases?
+
+1. Fork the repository: https://github.com/angr/angr-management
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+See CONTRIBUTING.md in the repository for detailed guidelines.
+
+## Migration Notes
+
+### Upgrading from 9.2.19x to 9.2.20x+
+
+- Command Palette feature added - new keyboard shortcut Ctrl+Shift+P
+- Go-to palette added - press Shift twice quickly
+- Improved testing infrastructure (no user-facing changes)
+- Better type safety in internal APIs (no user-facing changes)
+
+### Upgrading from Earlier Versions
+
+- PySide6 6.7.0 is now explicitly excluded due to compatibility issues
+- Decompilation cache behavior has changed for better performance
+- Some internal APIs have changed (affects plugin developers)
+- Configuration format remains backward compatible
+
+## Known Issues
+
+For a current list of known issues and workarounds, see:
+- [GitHub Issues](https://github.com/angr/angr-management/issues)
+- [Troubleshooting Guide](/reference/troubleshooting)
+
+## Release Schedule
+
+angr Management typically follows this release schedule:
+- **Patch releases:** As needed for critical bug fixes
+- **Minor releases:** Every few weeks with new features
+- **Major releases:** Coordinated with major angr framework releases
+
+Note: This is a community-driven project, so release timing may vary based on contributor availability.

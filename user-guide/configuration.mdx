@@ -1,0 +1,564 @@
+---
+title: Configuration
+description: Customize angr Management settings and preferences
+---
+
+angr Management is highly customizable through its comprehensive preferences system. This guide covers all available configuration options.
+
+## Accessing Preferences
+
+Open the preferences dialog:
+
+- **File → Preferences**
+- Or press `Ctrl+,` (on most platforms)
+
+## General Settings
+
+### User Interface
+
+<AccordionGroup>
+  <Accordion title="Default Font">
+    **UI Default Font**
+    
+    Controls font used for:
+    - Menu items
+    - Dialog boxes
+    - Table views
+    - General UI text
+    
+    **Default:** System font
+    
+    **To change:**
+    1. Click font selector
+    2. Choose font family
+    3. Set size
+    4. Select weight
+  </Accordion>
+  
+  <Accordion title="Tabular View Font">
+    **Font for Tables**
+    
+    Used in:
+    - Functions table
+    - Breakpoints table
+    - Patches table
+    - String tables
+    
+    **Recommendation:** Monospace font for alignment
+  </Accordion>
+</AccordionGroup>
+
+### Theme
+
+Choose a color scheme:
+
+<Tabs>
+  <Tab title="Light Theme">
+    **Classic light theme** (default)
+    
+    - Light backgrounds
+    - Dark text
+    - Suitable for bright environments
+    - Easy on eyes in daylight
+  </Tab>
+  <Tab title="Dark Theme">
+    **Dark mode**
+    
+    - Dark backgrounds
+    - Light text
+    - Reduces eye strain in low light
+    - Better for extended sessions
+  </Tab>
+  <Tab title="Custom">
+    **Create custom themes**
+    
+    - Configure individual colors
+    - Save as custom theme
+    - Share with team
+    - Per-view customization
+  </Tab>
+</Tabs>
+
+## Disassembly Settings
+
+### Fonts
+
+**Disassembly Font**: Font used in the disassembly view
+
+<CodeGroup>
+```python Recommended Fonts
+# Monospace fonts work best:
+- DejaVu Sans Mono
+- Source Code Pro
+- Consolas (Windows)
+- Monaco (macOS)
+- JetBrains Mono
+- Fira Code
+```
+</CodeGroup>
+
+**Size Recommendations:**
+- **Small screens**: 10-11pt
+- **Standard**: 11-12pt  
+- **Large screens**: 12-14pt
+- **Presentations**: 14-16pt
+
+### Colors
+
+Customize syntax highlighting colors:
+
+<Tabs>
+  <Tab title="Instructions">
+    - **Mnemonic**: Instruction name color
+    - **Operands**: Operand color
+    - **Constants**: Immediate values
+    - **Variables**: Variable names
+    - **Comments**: Comment text
+  </Tab>
+  <Tab title="Graph Elements">
+    - **Node background**: Basic block background
+    - **Node border**: Block outline
+    - **Selected node**: Highlight color
+    - **True edge**: Conditional true branch
+    - **False edge**: Conditional false branch
+    - **Direct jump**: Unconditional jumps
+    - **Back edge**: Loop edges
+    - **Exception edge**: Exception handling
+  </Tab>
+  <Tab title="Special">
+    - **Addresses**: Memory address color
+    - **Labels**: Label/symbol names
+    - **Strings**: String literal color
+    - **Functions**: Function names
+    - **Targets**: Jump/call targets
+  </Tab>
+</Tabs>
+
+### Display Options
+
+<CardGroup cols={2}>
+  <Card title="Node Rounding" icon="circle">
+    Adjust corner rounding on graph nodes:
+    - 0: Sharp corners
+    - 5-10: Slightly rounded (recommended)
+    - 15+: Very rounded
+  </Card>
+  <Card title="Minimap Colors" icon="map">
+    Configure minimap appearance:
+    - Background color
+    - Viewport indicator
+    - Shadow color
+    - Outline color
+  </Card>
+</CardGroup>
+
+## Pseudocode Settings
+
+### Font
+
+**Code Font**: Font for pseudocode view
+
+**Recommended monospace fonts:**
+- Source Code Pro (default)
+- Fira Code (with ligatures)
+- JetBrains Mono
+- Cascadia Code
+
+### Syntax Highlighting
+
+Customize pseudocode colors:
+
+| Element | Configurable | Example |
+|---------|-------------|--------|
+| **Keywords** | Color, Weight, Style | `if`, `while`, `return` |
+| **Types** | Color, Weight, Style | `int`, `char*` |
+| **Functions** | Color, Weight, Style | `func_401000()` |
+| **Library Functions** | Color | `printf()` |
+| **Variables** | Color, Weight, Style | `local_var` |
+| **Global Variables** | Color, Weight, Style | `g_data` |
+| **Comments** | Color, Weight, Style | `// comment` |
+| **Strings** | Color, Weight, Style | `"string"` |
+| **Labels** | Color, Weight, Style | `label_1:` |
+
+**Font Weights:**
+- Light
+- Normal/Medium (default)
+- DemiBold
+- Bold
+
+**Font Styles:**
+- Normal (default)
+- Italic
+- Oblique
+
+### Highlight Color
+
+**Pseudocode Highlight Color**: Background color when selecting code elements
+
+**Default**: Yellow (`#FFFF00`)
+
+## Hex View Settings
+
+### Colors
+
+<AccordionGroup>
+  <Accordion title="Selection Colors">
+    - **Selection**: Primary selection color (red)
+    - **Selection Alt**: Inactive selection (gray)
+  </Accordion>
+  
+  <Accordion title="Data Colors">
+    - **Data**: Generic data color
+    - **Strings**: String data color
+    - **Instructions**: Code bytes color
+  </Accordion>
+</AccordionGroup>
+
+## LLM Configuration
+
+<Note>
+AI features require an OpenAI-compatible API endpoint.
+</Note>
+
+### API Settings
+
+<Steps>
+  <Step title="Model Selection">
+    **LLM Model**: Model name (e.g., `gpt-4`, `gpt-3.5-turbo`)
+  </Step>
+  <Step title="API Key">
+    **LLM API Key**: Your API key for authentication
+    
+    <Warning>
+    Keep your API key secure. Don't share your configuration file.
+    </Warning>
+  </Step>
+  <Step title="API Base URL">
+    **LLM API Base**: Custom endpoint (optional)
+    
+    Default: OpenAI endpoint
+    
+    Custom: For local models or alternative providers
+  </Step>
+</Steps>
+
+### Auto-Refinement
+
+Enable automatic AI improvements:
+
+<Tabs>
+  <Tab title="Variable Names">
+    **Auto-rename Variables**
+    
+    - Automatically suggests variable names
+    - Runs on every decompilation
+    - Can slow down analysis
+    
+    **Recommended**: Off (use manual refinement)
+  </Tab>
+  <Tab title="Function Names">
+    **Auto-rename Functions**
+    
+    - Suggests descriptive function names
+    - Analyzes function behavior
+    - Updates call sites automatically
+    
+    **Recommended**: Off for large binaries
+  </Tab>
+  <Tab title="Variable Types">
+    **Auto-retype Variables**
+    
+    - Infers variable types from usage
+    - Improves decompilation quality
+    - May require confirmation
+    
+    **Recommended**: On for exploratory analysis
+  </Tab>
+  <Tab title="Summarization">
+    **Auto-summarize Functions**
+    
+    - Generates natural language summaries
+    - Helps understand complex functions
+    - Cached for performance
+    
+    **Recommended**: On if API quota allows
+  </Tab>
+</Tabs>
+
+### Callee Preloading
+
+**Preload Callees**: Load callee function information for context
+
+- Improves AI suggestions
+- Increases API usage
+- Slower but more accurate
+
+## Network Settings
+
+### Proxy Configuration
+
+<CardGroup cols={2}>
+  <Card title="HTTP Proxy" icon="globe">
+    Set proxy for HTTP requests:
+    
+    Format: `http://proxy:port`
+    
+    Used for:
+    - Downloading files
+    - Plugin updates
+    - API requests (if not HTTPS)
+  </Card>
+  <Card title="HTTPS Proxy" icon="lock">
+    Set proxy for HTTPS requests:
+    
+    Format: `https://proxy:port`
+    
+    Used for:
+    - Secure downloads
+    - LLM API requests
+    - Plugin repositories
+  </Card>
+</CardGroup>
+
+## Analysis Settings
+
+### FLIRT Signatures
+
+**Signatures Root**: Path to FLIRT signature files
+
+**Default**: `./angrmanagement/resources/flirt_signatures/`
+
+**Custom signatures:**
+1. Add .sig files to a directory
+2. Set this path to that directory
+3. Restart angr Management
+
+### Library Documentation
+
+**Docs Root**: Path to library documentation files
+
+**Default**: `./angrmanagement/resources/library_docs/`
+
+**Format**: JSON files with function documentation
+
+## Plugin Settings
+
+### Plugin Search Path
+
+**Plugin Search Path**: Colon-separated list of directories
+
+**Default**: `$AM_BUILTIN_PLUGINS:~/.local/share/angr-management/plugins`
+
+**Components:**
+- `$AM_BUILTIN_PLUGINS`: Built-in plugins
+- User plugin directory: Custom plugins
+
+### Enabled Plugins
+
+**Enabled Plugins**: Comma-separated list of plugin names
+
+**Example:**
+```
+MyPlugin,AnotherPlugin,ThirdPlugin
+```
+
+**Empty**: All discovered plugins enabled
+
+## Advanced Settings
+
+### Daemon Mode
+
+**Use Daemon**: Run angr in daemon mode
+
+<Accordion title="What is Daemon Mode?">
+  Daemon mode runs angr analyses in a separate process:
+  
+  **Benefits:**
+  - Shared analysis across multiple GUI instances
+  - Faster startup for subsequent instances
+  - Better resource isolation
+  
+  **Drawbacks:**
+  - Additional process overhead
+  - Requires daemon management
+  - More complex debugging
+  
+  **Recommended**: Off for single-user scenarios
+</Accordion>
+
+### View Tabs
+
+**Enabled Tabs**: Comma-separated list of view class names
+
+**Default**: Empty (all views enabled)
+
+**Example** (minimal setup):
+```
+DisassemblyView,CodeView,FunctionsView,HexView
+```
+
+### URL Scheme
+
+**URL Scheme Registration**: Register `angr://` protocol handler
+
+**Enables:**
+- Deep linking from browsers
+- Click `angr://` links to open in angr Management
+- Integration with external tools
+
+**Platform support:**
+- ✅ Linux
+- ✅ macOS  
+- ✅ Windows
+
+## Configuration File
+
+angr Management stores preferences in a TOML file:
+
+**Location:**
+- **Linux**: `~/.config/angr-management/config.toml`
+- **macOS**: `~/Library/Application Support/angr-management/config.toml`
+- **Windows**: `%APPDATA%\angr-management\config.toml`
+
+### Manual Editing
+
+<Warning>
+Edit configuration files at your own risk. Invalid TOML will prevent angr Management from starting.
+</Warning>
+
+**Example configuration:**
+
+```toml
+theme_name = "Dark"
+base_theme_name = "Dark"
+
+[disasm_font]
+family = "DejaVu Sans Mono"
+size = 11
+weight = 50
+
+[code_font]
+family = "Source Code Pro"
+size = 11
+weight = 50
+
+[llm]
+model = "gpt-4"
+api_key = "sk-..."
+auto_rename_variables = false
+auto_summarize = true
+```
+
+### Color Format
+
+Colors are stored as ARGB hex strings:
+
+```toml
+palette_highlight = "ff308cc6"  # ARGB: ff=alpha, 30=red, 8c=green, c6=blue
+```
+
+## Importing/Exporting Settings
+
+### Export Configuration
+
+1. Locate your config file (see above)
+2. Copy to backup location
+3. Share with team or across machines
+
+### Import Configuration
+
+<Steps>
+  <Step title="Close angr Management">
+    Exit all instances
+  </Step>
+  <Step title="Replace Config">
+    Copy your config file to the correct location
+  </Step>
+  <Step title="Start angr Management">
+    New settings take effect immediately
+  </Step>
+</Steps>
+
+### Reset to Defaults
+
+1. Close angr Management
+2. Delete or rename `config.toml`
+3. Restart angr Management
+4. Default configuration is created
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Settings Not Saving">
+    **Changes revert after restart:**
+    
+    **Causes:**
+    - File permissions issue
+    - Config directory doesn't exist
+    - Corrupted config file
+    
+    **Solutions:**
+    - Check file permissions on config directory
+    - Manually create config directory
+    - Delete config file and restart
+  </Accordion>
+  
+  <Accordion title="UI Looks Wrong">
+    **After changing theme or fonts:**
+    
+    **Solutions:**
+    - Restart angr Management
+    - Reset to default theme
+    - Check font is installed on system
+    - Try different font/theme combination
+  </Accordion>
+  
+  <Accordion title="LLM Not Working">
+    **AI features fail or timeout:**
+    
+    **Solutions:**
+    - Verify API key is correct
+    - Check API base URL
+    - Test API endpoint independently
+    - Check network/proxy settings
+    - Verify quota/rate limits
+  </Accordion>
+</AccordionGroup>
+
+## Performance Tuning
+
+<CardGroup cols={2}>
+  <Card title="Large Binaries" icon="file">
+    For binaries >10MB:
+    - Disable auto-decompilation
+    - Disable minimap if slow
+    - Use linear view more
+    - Reduce graph node rounding
+    - Limit enabled views
+  </Card>
+  <Card title="Low-End Hardware" icon="computer">
+    Optimize for performance:
+    - Disable AI auto-refinement
+    - Use simpler color schemes
+    - Reduce font sizes slightly
+    - Disable exception edges
+    - Close unused views
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Interface" icon="window" href="/user-guide/interface-overview">
+    Return to interface overview
+  </Card>
+  <Card title="Themes" icon="palette" href="/customization/themes">
+    Create custom themes
+  </Card>
+  <Card title="Plugins" icon="plug" href="/plugins/overview">
+    Extend with plugins
+  </Card>
+  <Card title="Scripting" icon="code" href="/advanced/scripting">
+    Automate with scripts
+  </Card>
+</CardGroup>

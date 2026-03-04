@@ -1,0 +1,390 @@
+---
+title: Development Setup
+description: Set up your development environment for angr Management
+---
+
+## Prerequisites
+
+angr Management requires:
+- **Python:** 3.10 or higher
+- **Platform:** Windows, macOS, or Linux
+- **Qt:** PySide6 (installed automatically)
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="Development Install (Recommended)">
+    ### Using uv (Fast)
+
+    [uv](https://docs.astral.sh/uv/) is the recommended way to set up a development environment:
+
+    ```bash
+    # Clone the repository
+    git clone https://github.com/angr/angr-management.git
+    cd angr-management
+
+    # Install with all development dependencies
+    uv sync --all-groups
+
+    # Activate the virtual environment
+    source .venv/bin/activate  # On Unix/macOS
+    # or
+    .venv\Scripts\activate  # On Windows
+
+    # Run angr Management
+    python -m angrmanagement
+    ```
+
+    ### Using pip
+
+    ```bash
+    # Clone the repository
+    git clone https://github.com/angr/angr-management.git
+    cd angr-management
+
+    # Create a virtual environment
+    python -m venv venv
+    source venv/bin/activate  # On Unix/macOS
+
+    # Install in editable mode with dev dependencies
+    pip install -e ".[dev]"
+
+    # Run angr Management
+    angr-management
+    ```
+  </Tab>
+
+  <Tab title="From Source (Latest)">
+    ### Install Latest angr with angr Management
+
+    For bleeding-edge development with the latest angr:
+
+    ```bash
+    # Clone all required repositories
+    git clone https://github.com/angr/angr-management.git
+    git clone https://github.com/angr/angr.git
+    git clone https://github.com/angr/archinfo.git
+    git clone https://github.com/angr/pyvex.git
+    git clone https://github.com/angr/cle.git
+    git clone https://github.com/angr/claripy.git
+
+    # Install each in editable mode
+    cd archinfo && pip install -e . && cd ..
+    cd pyvex && pip install -e . && cd ..
+    cd cle && pip install -e . && cd ..
+    cd claripy && pip install -e . && cd ..
+    cd angr && pip install -e . && cd ..
+    cd angr-management && pip install -e ".[dev]" && cd ..
+    ```
+
+    This matches the configuration in `pyproject.toml:98-104`.
+  </Tab>
+</Tabs>
+
+## Dependency Groups
+
+angr Management defines several dependency groups in `pyproject.toml`:
+
+### Core Dependencies
+
+Automatically installed with the base package:
+- **PySide6-Essentials** (>=6.4.2, !=6.7.0) - Qt bindings
+- **PySide6-QtAds** (>=4.2.1) - Advanced docking system
+- **QtAwesome** (1.4.0) - Icon fonts
+- **angr** (with angrDB) - Binary analysis framework
+- **cle** - Binary loader
+- **pyqodeng** (>=0.0.10) - Code editor
+- **binsync** (5.7.11) - Collaboration framework
+- **ipython** - Interactive console
+
+### Development Group
+
+```bash
+uv sync --group dev
+```
+
+Includes:
+- **docs** - Documentation tools (Sphinx, furo, myst-parser)
+- **pyinstaller** - Bundling tools
+- **testing** - Test framework and coverage tools
+
+### Testing Group
+
+```bash
+uv sync --group testing
+```
+
+Includes:
+- **pytest** - Testing framework
+- **pytest-cov** - Coverage plugin
+- **pytest-xdist** - Parallel testing
+- **pytest-timeout** - Test timeouts
+- **coverage** - Code coverage
+
+See `pyproject.toml:63-72` for the complete list.
+
+### Documentation Group
+
+```bash
+uv sync --group docs
+```
+
+Includes:
+- **sphinx** - Documentation generator
+- **furo** - Sphinx theme
+- **myst-parser** - Markdown support
+- **sphinx-autodoc-typehints** - Type hint documentation
+
+### PyInstaller Group
+
+```bash
+uv sync --group pyinstaller
+```
+
+For creating standalone executables:
+- **pyinstaller** (6.16.0)
+- **pillow** (macOS only)
+- **keystone-engine** (non-Linux ARM)
+- **angr[unicorn]**
+
+## Platform-Specific Setup
+
+<Tabs>
+  <Tab title="Ubuntu/Debian">
+    ### Required System Packages
+
+    ```bash
+    sudo apt-get update
+    sudo apt-get install -y \
+      libfuse2 \
+      libegl1 \
+      libxkbcommon-x11-0 \
+      libxcb-cursor0 \
+      libxcb-icccm4 \
+      libxcb-image0 \
+      libxcb-keysyms1 \
+      libxcb-randr0 \
+      libxcb-render-util0 \
+      libxcb-shape0
+    ```
+
+    These packages are required for Qt/PySide6 to function properly. See `.github/workflows/ci.yml:36-48`.
+  </Tab>
+
+  <Tab title="macOS">
+    ### macOS Requirements
+
+    Additional dependencies are automatically installed on macOS:
+    - **pyobjc-framework-Cocoa** - macOS integration
+
+    ```bash
+    # Install Rust (required for some dependencies)
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+    # Install angr Management
+    uv sync --all-groups
+    ```
+  </Tab>
+
+  <Tab title="Windows">
+    ### Windows Setup
+
+    ```powershell
+    # Install Rust
+    # Download and run: https://rustup.rs/
+
+    # Clone and install
+    git clone https://github.com/angr/angr-management.git
+    cd angr-management
+    uv sync --all-groups
+
+    # Run
+    python -m angrmanagement
+    ```
+  </Tab>
+</Tabs>
+
+## Running angr Management
+
+After installation, you can run angr Management in several ways:
+
+<CodeGroup>
+```bash Command Line
+# Using the installed script
+angr-management
+
+# Or the alias
+am
+
+# Using Python module
+python -m angrmanagement
+```
+
+```python Programmatic API
+import angrmanagement
+import angr
+
+# Boot without a project
+workspace = angrmanagement.boot(block=False)
+
+# Boot with a project
+project = angr.Project('/bin/ls', auto_load_libs=False)
+workspace = angrmanagement.boot(project=project, block=False)
+
+# Boot and block (event loop runs in current thread)
+angrmanagement.boot(project=project, block=True)
+```
+
+```python Headless Mode
+from PySide6.QtWidgets import QApplication
+from angrmanagement.ui.main_window import MainWindow
+from angrmanagement.config import Conf
+
+app = QApplication([])
+Conf.init_font_config()
+
+# Create main window without showing it
+main_window = MainWindow(show=False)
+workspace = main_window.workspace
+instance = workspace.main_instance
+
+# Use for testing or automation
+```
+</CodeGroup>
+
+## Development Tools
+
+### Code Quality
+
+angr Management uses **Ruff** for linting and formatting:
+
+```bash
+# Run linter
+ruff check .
+
+# Auto-fix issues
+ruff check --fix .
+
+# Format code
+ruff format .
+```
+
+Configuration in `pyproject.toml:106-138`:
+- Line length: 120
+- Target version: Python 3.10
+- Required imports: `from __future__ import annotations`
+
+### Type Checking
+
+Type checking with **mypy**:
+
+```bash
+mypy angrmanagement tests
+```
+
+Configuration in `pyproject.toml:140-147`.
+
+### Testing
+
+See the [Contributing Guide](/development/contributing) for testing instructions.
+
+## Environment Variables
+
+```bash
+# Force Qt API (set automatically by angr Management)
+export QT_API=pyside6
+
+# Set Qt platform for headless testing
+export QT_QPA_PLATFORM=minimal:enable_fonts
+
+# Enable debug logging
+export ANGRMANAGEMENT_LOG_LEVEL=DEBUG
+```
+
+## Project Structure
+
+```
+angr-management/
+├── angrmanagement/          # Main package
+│   ├── __init__.py         # Boot function
+│   ├── __main__.py         # Entry point
+│   ├── config/             # Configuration management
+│   ├── data/               # Data models (Instance, ObjectContainer)
+│   ├── logic/              # Business logic (GlobalInfo, managers)
+│   ├── plugins/            # Plugin system
+│   ├── ui/                 # UI components
+│   │   ├── main_window.py  # MainWindow
+│   │   ├── workspace.py    # Workspace
+│   │   ├── views/          # All views
+│   │   ├── dialogs/        # Dialog windows
+│   │   └── widgets/        # Custom widgets
+│   └── resources/          # Fonts, images, themes
+├── tests/                  # Test suite
+├── docs/                   # Documentation
+├── pyproject.toml          # Project configuration
+└── README.md
+```
+
+## Optional Features
+
+### Bintrace Support
+
+For trace analysis capabilities:
+
+```bash
+pip install angr-management[bintrace]
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Qt platform plugin could not be initialized">
+    This usually means Qt dependencies are missing.
+
+    **Ubuntu/Linux:**
+    ```bash
+    sudo apt-get install libegl1 libxkbcommon-x11-0 libxcb-cursor0
+    ```
+
+    **For headless environments:**
+    ```bash
+    export QT_QPA_PLATFORM=offscreen
+    ```
+  </Accordion>
+
+  <Accordion title="PySide6 6.7.0 conflicts">
+    PySide6 6.7.0 is explicitly excluded due to incompatibilities. The constraint is defined in `pyproject.toml:14`:
+
+    ```toml
+    PySide6-Essentials>=6.4.2,!=6.7.0
+    ```
+
+    If you encounter this version, downgrade or upgrade:
+    ```bash
+    pip install "PySide6-Essentials>=6.4.2,!=6.7.0"
+    ```
+  </Accordion>
+
+  <Accordion title="Import errors with angr">
+    Make sure angr and angr-management versions match:
+
+    ```bash
+    # Check versions
+    python -c "import angrmanagement; print(angrmanagement.__version__)"
+    python -c "import angr; print(angr.__version__)"
+    ```
+
+    Both should be `9.2.205.dev0` for the development version.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture Overview" icon="sitemap" href="/development/architecture">
+    Understand the core components
+  </Card>
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Start contributing to the project
+  </Card>
+</CardGroup>

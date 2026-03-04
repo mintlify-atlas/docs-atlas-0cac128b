@@ -1,0 +1,615 @@
+---
+title: Plugin Examples
+description: Real-world plugin examples from the angr Management codebase
+---
+
+## Simple Bookmark Plugin
+
+This example shows basic plugin functionality: adding menu items, registering containers, and coloring functions.
+
+```python sample_plugin.py
+from angrmanagement.plugins import BasePlugin
+from angrmanagement.ui.widgets.qinst_annotation import (
+    QInstructionAnnotation,
+    QPassthroughCount
+)
+
+class SamplePlugin(BasePlugin):
+    def __init__(self, workspace):
+        super().__init__(workspace)
+        
+        # Register a custom container for bookmarks
+        workspace.main_instance.register_container(
+            "bookmarks",
+            list,
+            list[int],
+            "Bookmarked addresses"
+        )
+    
+    # Add a menu button
+    MENU_BUTTONS = ("Add Bookmark",)
+    
+    def build_context_menu_functions(self, funcs):
+        """Add custom context menu items."""
+        yield ("owo", [
+            ("uwu", lambda: None),
+            ("o_O", lambda: None)
+        ])
+    
+    def step_callback(self, simgr):
+        """Called after each symbolic execution step."""
+        print(f"Active States: {simgr}")
+    
+    def build_qblock_annotations(self, qblock):
+        """Add annotations to basic blocks."""
+        return [QPassthroughCount(qblock.addr, "entry")]
+```
+
+**Key Features:**
+- Custom container registration
+- Menu button integration
+- Context menu customization
+- Symbolic execution callbacks
+- Block annotations
+
+## Trace Viewer Plugin
+
+A comprehensive plugin that visualizes execution traces with custom views, coloring, and URL handlers.
+
+```python trace_plugin.py
+from PySide6.QtGui import QColor
+from PySide6.QtWidgets import QFileDialog, QInputDialog, QLineEdit
+
+from angrmanagement.plugins.base_plugin import BasePlugin
+
+class TraceViewer(BasePlugin):
+    def __init__(self, workspace):
+        super().__init__(workspace)
+        
+        # Register trace-related containers
+        self.workspace.main_instance.register_container(
+            "trace",
+            lambda: None,
+            TraceStatistics | None,
+            "The current trace"
+        )
+        self.workspace.main_instance.register_container(
+            "multi_trace",
+            lambda: None,
+            MultiTrace | None,
+            "The current set of multiple traces"
+        )
+        
+        # Subscribe to trace updates
+        self.multi_trace.am_subscribe(self._on_trace_updated)
+        
+        self._viewers = []
+    
+    def teardown(self):
+        """Clean up viewer widgets."""
+        for trace_viewer in self._viewers:
+            trace_viewer.hide()
+    
+    @property
+    def trace(self):
+        return self.workspace.main_instance.trace
+    
+    @property
+    def multi_trace(self):
+        return self.workspace.main_instance.multi_trace
+    
+    def _on_trace_updated(self):
+        """Refresh views when trace changes."""
+        # Redraw disassembly view
+        view = self.workspace.view_manager.first_view_in_category("disassembly")
+        if view is not None:
+            view.redraw_current_graph()
+        
+        # Refresh function table
+        view = self.workspace.view_manager.first_view_in_category("functions")
+        if view is not None:
+            view.refresh()
+    
+    # URL action handlers
+    URL_ACTIONS = ["openbitmap", "opentrace"]
+    
+    def handle_url_action(self, action, kwargs):
+        """Handle URL-based actions."""
+        if action == "openbitmap":
+            try:
+                base = int(kwargs["base"], 16)
+            except (ValueError, KeyError):
+                base = None
+            
+            self.open_bitmap_multi_trace(
+                kwargs["path"],
+                base_addr=base
+            )
+        elif action == "opentrace":
+            try:
+                base = int(kwargs["base"], 16)
+            except (ValueError, KeyError):
+                base = None
+            
+            self.add_trace(
+                trace_path=kwargs["path"],
+                base_addr=base
+            )
+    
+    # Instrument disassembly view
+    def instrument_disassembly_view(self, dview):
+        """Add trace viewer widget to disassembly view."""
+        from .qtrace_viewer import QTraceViewer
+        
+        trace_viewer = QTraceViewer(self.workspace, dview, parent=dview)
+        self._viewers.append(trace_viewer)
+        
+        dview.layout().addWidget(trace_viewer)
+        trace_viewer.hide()
+    
+    # Color blocks based on trace coverage
+    def color_block(self, addr):
+        """Color blocks based on trace hits."""
+        if not self.multi_trace.am_none:
+            if isinstance(self.multi_trace.am_obj, MultiTrace):
+                if not self.multi_trace.is_active_tab:
+                    return None
+            return self.multi_trace.get_hit_miss_color(addr)
+        return None
+    
+    # Handle block clicks
+    def handle_click_block(self, qblock, event):
+        """Handle Ctrl+Right-click to view trace details."""
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QApplication
+        
+        btn = event.button()
+        
+        if (QApplication.keyboardModifiers() == Qt.KeyboardModifier.ControlModifier
+                and btn == Qt.MouseButton.RightButton
+                and self.multi_trace is not None
+                and self.multi_trace.am_obj is not None):
+            
+            the_trace = self.multi_trace.get_any_trace(qblock.addr)
+            if the_trace is not None:
+                self.trace.am_obj = TraceStatistics(
+                    self.workspace,
+                    the_trace,
+                    self.multi_trace.base_addr
+                )
+                self.trace.am_event()
+                return True
+        
+        return False
+    
+    # Custom drawing on instructions
+    def draw_insn(self, qinsn, painter):
+        """Draw trace legend next to instructions."""
+        if (not self.multi_trace.am_none
+                and isinstance(self.multi_trace.am_obj, MultiTrace)
+                and not self.multi_trace.is_active_tab):
+            return  # Skip
+        
+        strata = self._gen_strata(qinsn.insn.addr)
+        if strata is not None:
+            legend_x = 0 - GRAPH_TRACE_LEGEND_WIDTH - GRAPH_TRACE_LEGEND_SPACING
+            for i, w in strata:
+                color = self.trace.get_mark_color(qinsn.insn.addr, i)
+                painter.setPen(color)
+                painter.setBrush(color)
+                painter.drawRect(legend_x, 0, w, qinsn.height)
+                legend_x += w
+    
+    # Color functions based on coverage
+    def color_func(self, func):
+        """Color functions based on trace coverage."""
+        if not self.multi_trace.am_none:
+            if isinstance(self.multi_trace.am_obj, MultiTrace):
+                if self.multi_trace.is_active_tab:
+                    return self.multi_trace.get_percent_color(func)
+        
+        if not self.trace.am_none:
+            if func.addr in self.trace.func_addr_in_trace:
+                return QColor(0xF0, 0xE7, 0xDA)
+            return QColor(0xEE, 0xEE, 0xEE)
+        
+        return None
+    
+    # Add custom function table column
+    FUNC_COLUMNS = ("Coverage",)
+    
+    def extract_func_column(self, func, idx):
+        """Extract coverage percentage for function."""
+        assert idx == 0
+        if self.multi_trace.am_none:
+            cov = 0
+            rend = ""
+        else:
+            cov = self.multi_trace.get_coverage(func)
+            rend = f"{cov:.2f}%"
+        
+        return cov, rend
+    
+    # Menu buttons for trace operations
+    MENU_BUTTONS = [
+        "Open/Add trace...",
+        "Clear trace",
+        "Open AFL bitmap...",
+        "Open inverted AFL bitmap...",
+        "Reset AFL bitmap",
+    ]
+    
+    def handle_click_menu(self, idx):
+        """Handle menu button clicks."""
+        if idx < 0 or idx >= len(self.MENU_BUTTONS):
+            return
+        
+        if self.workspace.main_instance.project.am_none:
+            return
+        
+        mapping = {
+            0: self.add_trace,
+            1: self.reset_trace,
+            2: self.open_bitmap_multi_trace,
+            3: self.open_inverted_bitmap_multi_trace,
+            4: self.reset_bitmap,
+        }
+        
+        mapping.get(idx)()
+```
+
+**Key Features:**
+- Multiple custom containers
+- Event subscription and propagation
+- URL action handling
+- View instrumentation
+- Custom drawing (legends)
+- Block and function coloring
+- Click event handling
+- Custom function table columns
+- File dialog integration
+
+## Coverage Plugin
+
+Shows integration with external services and background threads.
+
+```python coverage.py
+import threading
+import math
+
+from PySide6.QtGui import QColor
+from angrmanagement.config import Conf
+from angrmanagement.logic.threads import gui_thread_schedule
+from angrmanagement.plugins import BasePlugin
+
+class CoveragePlugin(BasePlugin):
+    """Fuzzing coverage visualization plugin."""
+    
+    def __init__(self, workspace):
+        super().__init__(workspace)
+        
+        self.workspace = workspace
+        
+        # Connect to external service
+        self.connector = self.workspace.plugins.get_plugin_instance_by_name(
+            "ChessConnector"
+        )
+        
+        # Color configuration
+        self.dark_theme_color = QColor(0, 20, 147)
+        self.light_theme_color = QColor(225, 174, 0)
+        self.hit_color = (
+            self.dark_theme_color if Conf.theme_name == "dark"
+            else self.light_theme_color
+        )
+        
+        # Generate color gradients
+        self.num_gradients = 16
+        self.gradients = generate_light_gradients(
+            self.hit_color,
+            self.num_gradients,
+            lightness=int(100 / 16)
+        )
+        
+        # State
+        self.running = False
+        self.slacrs_thread = None
+        self.seen_traces = None
+        self.bbl_coverage = None
+        self.bbl_coverage_hash = 0
+        self.coverage_lock = threading.Lock()
+        
+        self.reset_coverage()
+    
+    MENU_BUTTONS = [
+        "Start Showing Coverage",
+        "Stop Showing Coverage",
+    ]
+    
+    def handle_click_menu(self, idx):
+        """Handle menu clicks."""
+        if idx < 0 or idx >= len(self.MENU_BUTTONS):
+            return
+        
+        if idx == 0:
+            self.start()
+        elif idx == 1:
+            self.stop()
+    
+    def start(self):
+        """Start coverage monitoring."""
+        self.running = True
+        self.slacrs_thread = threading.Thread(
+            target=self.listen_for_events,
+            daemon=True
+        )
+        self.slacrs_thread.start()
+        gui_thread_schedule(self._refresh_gui)
+    
+    def stop(self):
+        """Stop coverage monitoring."""
+        self.running = False
+        gui_thread_schedule(self._refresh_gui)
+    
+    def color_block(self, addr):
+        """Color covered blocks."""
+        if not self.running:
+            return None
+        
+        with self.coverage_lock:
+            if addr in self.bbl_coverage:
+                return (self.dark_theme_color if Conf.theme_name == "dark"
+                        else self.light_theme_color)
+        return None
+    
+    def color_func(self, func):
+        """Color functions based on coverage percentage."""
+        if not self.running:
+            return None
+        
+        covered_bbls, total_bbls = self._coverage_of_func(func)
+        
+        if total_bbls == 0 or len(covered_bbls) == 0:
+            return None
+        
+        fraction_covered = len(covered_bbls) / total_bbls
+        gradient_number = math.ceil(fraction_covered * len(self.gradients))
+        return self.gradients[gradient_number - 1]
+    
+    FUNC_COLUMNS = ("Fuzzing Coverage",)
+    
+    def extract_func_column(self, func, idx):
+        """Extract coverage column data."""
+        assert idx == 0
+        if not self.running:
+            return 0, "0%"
+        
+        covered_bbls, total_bbls = self._coverage_of_func(func)
+        if len(covered_bbls) == 0:
+            return 0, "0%"
+        
+        fraction_covered = len(covered_bbls) / total_bbls
+        return fraction_covered, f"{int(round(fraction_covered * 100, 0))}%"
+    
+    def _coverage_of_func(self, func):
+        """Calculate function coverage."""
+        func_bbls = func.block_addrs_set
+        with self.coverage_lock:
+            covered_bbls = self.bbl_coverage & func_bbls
+        return covered_bbls, len(func_bbls)
+    
+    def _refresh_gui(self):
+        """Refresh the workspace."""
+        self.workspace.refresh()
+    
+    def reset_coverage(self):
+        """Reset coverage data."""
+        with self.coverage_lock:
+            self.seen_traces = set()
+            self.bbl_coverage = set()
+            self.bbl_coverage_hash = 0
+    
+    def update_coverage_from_list(self, trace_addrs):
+        """Update coverage from trace addresses."""
+        with self.coverage_lock:
+            for addr in trace_addrs:
+                self.bbl_coverage.add(addr)
+        
+        new_hash = hash(frozenset(self.bbl_coverage))
+        if new_hash != self.bbl_coverage_hash:
+            self.bbl_coverage_hash = new_hash
+            gui_thread_schedule(self._refresh_gui)
+    
+    def listen_for_events(self):
+        """Background thread listening for coverage updates."""
+        # Initialize connections
+        while not self.connector and self.running:
+            self.connector = self.workspace.plugins.get_plugin_instance_by_name(
+                "ChessConnector"
+            )
+            time.sleep(1)
+        
+        if not self.running:
+            return
+        
+        # Process coverage updates
+        self.update_coverage()
+```
+
+**Key Features:**
+- Background thread management
+- Thread-safe state with locks
+- Integration with external plugins
+- Dynamic color gradients
+- Theme-aware coloring
+- Coverage percentage calculation
+- GUI thread scheduling
+
+## Source Viewer Plugin
+
+Demonstrates creating custom views and integrating with the workspace.
+
+```python source_viewer_plugin.py
+from PySide6.QtWidgets import QVBoxLayout
+
+from angrmanagement.plugins import BasePlugin
+from angrmanagement.ui.views.view import InstanceView
+
+class SourceViewer(InstanceView):
+    """Custom view showing source code."""
+    
+    def __init__(self, workspace):
+        super().__init__(
+            "SourceViewer",
+            workspace,
+            "center",
+            workspace.main_instance
+        )
+        self.base_caption = "Source Viewer"
+        self.workspace = workspace
+        self.instance = workspace.main_instance
+        
+        # Subscribe to project changes
+        workspace.main_instance.project.am_subscribe(
+            self.load_from_project
+        )
+        
+        self._init_widgets()
+    
+    @property
+    def disasm_view(self):
+        return self.workspace.view_manager.first_view_in_category(
+            "disassembly"
+        )
+    
+    @property
+    def symexec_view(self):
+        return self.workspace.view_manager.first_view_in_category(
+            "symexec"
+        )
+    
+    def _init_widgets(self):
+        """Initialize view widgets."""
+        from .source_code_viewer import SourceCodeViewerTabWidget
+        
+        self.main = SourceCodeViewerTabWidget()
+        self.main.viewer = self
+        
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.main)
+        self.setLayout(main_layout)
+    
+    def load_from_project(self, **kwargs):
+        """Load source mapping from project."""
+        if self.instance.project.am_none:
+            return
+        
+        loader = self.instance.project.loader
+        if (hasattr(loader.main_object, "addr_to_line")
+                and loader.main_object.addr_to_line is not None):
+            self.main.load(loader.main_object.addr_to_line)
+    
+    def add_point(self, fn, line, typ):
+        """Add find/avoid point from source line."""
+        symexec_view = self.symexec_view
+        if not symexec_view:
+            return ""
+        
+        address_list = self.main.line_to_addr[(fn, line)]
+        
+        for addr in address_list:
+            if typ == "find":
+                symexec_view.find_addr_in_exec(addr)
+            else:
+                symexec_view.avoid_addr_in_exec(addr)
+        
+        return "\n".join([f"0x{i:x}" for i in address_list])
+
+
+class SourceViewerPlugin(BasePlugin):
+    """Plugin that adds source code viewing capability."""
+    
+    def __init__(self, workspace):
+        super().__init__(workspace)
+        
+        # Create and register custom view
+        self.source_viewer = SourceViewer(workspace)
+        workspace.default_tabs += [self.source_viewer]
+        workspace.add_view(self.source_viewer)
+```
+
+**Key Features:**
+- Custom view creation
+- View registration
+- Project subscription
+- Integration with other views
+- Source-to-address mapping
+- Symbolic execution integration
+
+## Best Practices Demonstrated
+
+### Container Management
+
+```python
+# Register containers in __init__
+workspace.main_instance.register_container(
+    "my_data",
+    lambda: None,
+    MyType | None,
+    "Description"
+)
+
+# Subscribe to changes
+workspace.main_instance.my_data.am_subscribe(self._callback)
+
+# Clean up in teardown
+def teardown(self):
+    self.workspace.main_instance.my_data.am_unsubscribe(self._callback)
+```
+
+### Thread Safety
+
+```python
+import threading
+from angrmanagement.logic.threads import gui_thread_schedule
+
+# Protect shared state
+self.lock = threading.Lock()
+
+# Modify data
+with self.lock:
+    self.data.update(new_data)
+
+# Update GUI from any thread
+gui_thread_schedule(self._refresh_gui)
+```
+
+### Error Handling
+
+```python
+def some_callback(self, **kwargs):
+    try:
+        # Plugin logic
+        result = self.process_data()
+    except Exception as e:
+        self.workspace.log(f"Error in {self.DISPLAY_NAME}: {e}")
+        return None
+```
+
+### Resource Cleanup
+
+```python
+def teardown(self):
+    # Stop threads
+    if self.worker_thread:
+        self.running = False
+        self.worker_thread.join(timeout=1.0)
+    
+    # Remove widgets
+    for widget in self._added_widgets:
+        widget.hide()
+        widget.deleteLater()
+    
+    # Unsubscribe from containers
+    self.workspace.main_instance.project.am_unsubscribe(self._on_project)
+```

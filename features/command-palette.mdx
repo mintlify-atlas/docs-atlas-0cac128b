@@ -1,0 +1,444 @@
+---
+title: Command Palette
+description: Quick command access with fuzzy search
+---
+
+The Command Palette provides fast, keyboard-driven access to all commands in angr Management. Press `Ctrl+Shift+P` to open it and start typing to search.
+
+## Overview
+
+The Command Palette is a fuzzy-search interface that lets you execute commands without navigating through menus:
+
+- **Keyboard-driven**: No mouse required
+- **Fuzzy matching**: Type partial names to find commands
+- **Context-aware**: Shows commands relevant to the current view
+- **Extensible**: Plugins can add custom commands
+
+## Opening the Command Palette
+
+### Keyboard Shortcut
+
+Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on macOS) from anywhere in angr Management.
+
+The implementation uses a Qt event filter (`angrmanagement/ui/main_window.py`):
+
+```python
+def eventFilter(self, qobject, event) -> bool:
+    if event.type() == QEvent.Type.KeyPress and \
+       QKeySequence(event.keyCombination()) == QKeySequence("Ctrl+Shift+P"):
+        self._main_window.show_command_palette(qobject)
+        return True
+    return False
+```
+
+### Via Menu
+
+Navigate to **View** → **Command Palette**
+
+## Using the Command Palette
+
+<Steps>
+  <Step title="Open the palette">
+    Press `Ctrl+Shift+P` or select from the View menu
+  </Step>
+  
+  <Step title="Type to search">
+    Start typing the command name. The list filters as you type using fuzzy matching
+  </Step>
+  
+  <Step title="Navigate results">
+    Use `↑` and `↓` arrow keys to select a command
+  </Step>
+  
+  <Step title="Execute">
+    Press `Enter` to run the selected command
+  </Step>
+</Steps>
+
+## Architecture
+
+The Command Palette is built on a reusable palette framework with three main components:
+
+### Palette Framework
+
+The base implementation (`angrmanagement/ui/dialogs/palette.py:20`) provides:
+
+```python
+class PaletteModel(QAbstractItemModel):
+    """Data provider for item palette."""
+    
+    def __init__(self, workspace: Workspace) -> None:
+        super().__init__()
+        self.workspace = workspace
+        self._available_items = self.get_items()
+        self._filtered_items = self._available_items
+        self._filter_text = ""
+    
+    def set_filter_text(self, query: str) -> None:
+        """Filter items by captions matching query."""
+        if query == "":
+            self._filtered_items = self._available_items
+        else:
+            # Uses fuzzy matching from thefuzz library
+            self._filtered_items = [
+                item for _, _, item in 
+                process.extract(query, self._item_to_caption, limit=50)
+            ]
+```
+
+### Command Palette Implementation
+
+The Command Palette specializes the framework (`angrmanagement/ui/dialogs/command_palette.py:16`):
+
+```python
+class CommandPaletteModel(PaletteModel):
+    """Data provider for command palette."""
+    
+    def get_items(self) -> list[Command]:
+        return sorted(
+            [cmd for cmd in self.workspace.command_manager.get_commands() 
+             if cmd.is_visible],
+            key=lambda cmd: cmd.caption,
+        )
+    
+    def get_caption_for_item(self, item: Command) -> str:
+        return item.caption
+```
+
+### Dialog Interface
+
+The dialog provides the UI (`angrmanagement/ui/dialogs/command_palette.py:31`):
+
+```python
+class CommandPaletteDialog(PaletteDialog):
+    """Dialog for selecting commands."""
+    
+    def __init__(self, workspace: Workspace, parent=None) -> None:
+        super().__init__(
+            CommandPaletteModel(workspace),
+            PaletteItemDelegate(display_icons=False),
+            parent
+        )
+        self.setWindowTitle("Command Palette")
+```
+
+## Fuzzy Matching
+
+The palette uses fuzzy string matching to find commands (`angrmanagement/ui/dialogs/palette.py:62`):
+
+```python
+from thefuzz import process
+
+# Fuzzy search with thefuzz library
+self._filtered_items = [
+    item for _, _, item in 
+    process.extract(query, self._item_to_caption, limit=50)
+]
+```
+
+This allows you to:
+
+- Type partial words: `"goto"` matches "Goto Function"
+- Skip characters: `"gtfn"` matches "Goto Function"
+- Handle typos: `"gotto"` still matches "Goto Function"
+
+## Visual Rendering
+
+Matching characters are highlighted in bold (`angrmanagement/ui/dialogs/palette.py:82`):
+
+```python
+class PaletteItemDelegate(QStyledItemDelegate):
+    @staticmethod
+    def _get_text_document(index):
+        model = index.model()
+        item = index.data()
+        text_in = model.get_caption_for_item(item)
+        
+        # Render matching sub-sequences in bold
+        matcher = difflib.SequenceMatcher(
+            None, 
+            text_in.upper(), 
+            model._filter_text.upper()
+        )
+        
+        text_out = ""
+        last_idx = 0
+        for idx, _, size in matcher.get_matching_blocks():
+            if size == 0:
+                continue
+            text_out += text_in[last_idx:idx] + \
+                       f"<b>{text_in[idx:idx + size]}</b>"
+            last_idx = idx + size
+        text_out += text_in[last_idx:]
+```
+
+Example: Searching for "goto" in "Goto Function" displays as **"Goto"** Function
+
+## Command System
+
+Commands are managed by the Command Manager (`angrmanagement/logic/commands/command_manager.py:11`):
+
+```python
+class CommandManager:
+    """Manages available commands."""
+    
+    def __init__(self) -> None:
+        self._commands: dict[str, Command] = {}
+    
+    def register_command(self, command: Command) -> None:
+        assert command.name not in self._commands
+        self._commands[command.name] = command
+    
+    def get_commands(self):
+        return self._commands.values()
+```
+
+### Command Types
+
+Commands are defined with the `Command` interface (`angrmanagement/logic/commands/command.py:12`):
+
+```python
+class Command:
+    """Command to be run."""
+    
+    @property
+    def name(self) -> str:
+        """Short name for invocation."""
+        return self._name or self.__class__.__name__
+    
+    @property
+    def caption(self) -> str:
+        """Message displayed in command palette."""
+        return self._caption or self.name
+    
+    @property
+    def is_visible(self) -> bool:
+        """Whether this command should be displayed."""
+        return True
+    
+    def run(self) -> None:
+        """Runs the command."""
+        pass
+```
+
+### Basic Commands
+
+Simple commands invoke a callable (`angrmanagement/logic/commands/command.py:47`):
+
+```python
+class BasicCommand(Command):
+    def __init__(self, name: str, caption: str, action: Callable) -> None:
+        self._name = name
+        self._caption = caption
+        self._action = action
+    
+    def run(self) -> None:
+        self._action()
+```
+
+### View Commands
+
+Context-aware commands that operate on specific views (`angrmanagement/logic/commands/command.py:61`):
+
+```python
+class ViewCommand(Command):
+    """Commands to invoke a callable on a view."""
+    
+    def __init__(
+        self, 
+        name: str, 
+        caption: str, 
+        action: Callable,
+        view_class: type[BaseView],
+        workspace: Workspace
+    ) -> None:
+        self._name = name
+        self._caption = caption
+        self._action = action
+        self._view_class = view_class
+        self._workspace = workspace
+    
+    @property
+    def is_visible(self) -> bool:
+        view = self._workspace.view_manager.most_recently_focused_view
+        return isinstance(view, self._view_class)
+    
+    def run(self) -> None:
+        view = self._workspace.view_manager.most_recently_focused_view
+        if isinstance(view, self._view_class):
+            self._action(view)
+```
+
+## Registering Commands
+
+To add commands to the palette:
+
+```python
+# Register a basic command
+command_manager.register_command(
+    BasicCommand(
+        name="save_project",
+        caption="Save Project",
+        action=lambda: workspace.save_project()
+    )
+)
+
+# Register a view-specific command
+command_manager.register_command(
+    ViewCommand(
+        name="decompile_function",
+        caption="Decompile Current Function",
+        action=lambda view: view.decompile_current_function(),
+        view_class=DisassemblyView,
+        workspace=workspace
+    )
+)
+```
+
+## Goto Palette
+
+angr Management also includes a "Goto" palette for navigation (`angrmanagement/ui/dialogs/goto_palette.py:22`):
+
+```python
+class GotoPaletteModel(PaletteModel):
+    """Data provider for goto palette."""
+    
+    def get_items(self) -> list[Function]:
+        items = []
+        instance = self.workspace.main_instance
+        if instance and not instance.project.am_none:
+            project = instance.project.am_obj
+            if project is not None:
+                items.extend([func for _, func in project.kb.functions.items()])
+        return items
+    
+    def get_caption_for_item(self, item: Function) -> str:
+        return item.name
+    
+    def get_annotation_for_item(self, item: Function) -> str:
+        return f"{item.addr:x}"
+```
+
+The Goto palette:
+
+- Lists all functions in the binary
+- Shows function addresses as annotations
+- Color-codes functions by type (PLT, syscall, simprocedure, etc.)
+- Allows quick navigation to any function
+
+## Keyboard Navigation
+
+The palette supports full keyboard navigation (`angrmanagement/ui/dialogs/palette.py:242`):
+
+```python
+def keyPressEvent(self, event) -> None:
+    key = event.key()
+    if key in {Qt.Key.Key_Up, Qt.Key.Key_Down}:
+        # Navigate through filtered items
+        self._view.keyPressEvent(event)
+    elif key in {Qt.Key.Key_Enter, Qt.Key.Key_Return}:
+        # Execute selected command
+        self.accept()
+    else:
+        # Type to filter
+        super().keyPressEvent(event)
+```
+
+## Extending with Plugins
+
+Plugins can add commands to the palette:
+
+```python
+from angrmanagement.plugins import BasePlugin
+from angrmanagement.logic.commands import BasicCommand
+
+class MyPlugin(BasePlugin):
+    def __init__(self, workspace: Workspace) -> None:
+        super().__init__(workspace)
+        
+        # Register plugin commands
+        self.workspace.command_manager.register_command(
+            BasicCommand(
+                name="my_plugin_action",
+                caption="My Plugin: Do Something",
+                action=self.do_something
+            )
+        )
+    
+    def do_something(self):
+        # Plugin action
+        pass
+```
+
+## Performance
+
+The palette is optimized for large command lists:
+
+- **Lazy loading**: Items loaded only when palette opens
+- **Limited results**: Fuzzy search returns top 50 matches
+- **Efficient rendering**: Custom delegate for fast painting
+- **Incremental filtering**: Updates as you type
+
+## Customization
+
+### Custom Palettes
+
+Create custom palettes by subclassing the framework:
+
+```python
+from angrmanagement.ui.dialogs.palette import PaletteModel, PaletteDialog
+
+class CustomPaletteModel(PaletteModel):
+    def get_items(self):
+        # Return your custom items
+        return self.workspace.my_custom_items
+    
+    def get_caption_for_item(self, item):
+        return str(item)
+
+class CustomPaletteDialog(PaletteDialog):
+    def __init__(self, workspace, parent=None):
+        super().__init__(CustomPaletteModel(workspace), parent=parent)
+        self.setWindowTitle("My Custom Palette")
+```
+
+### Custom Rendering
+
+Customize how items are displayed:
+
+```python
+class CustomItemDelegate(PaletteItemDelegate):
+    def paint(self, painter, option, index):
+        # Custom rendering logic
+        super().paint(painter, option, index)
+        # Add custom decorations
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Command Naming">
+    - Use descriptive, action-oriented names
+    - Include context in the caption: "Function: Rename" not just "Rename"
+    - Group related commands with prefixes: "View: Show CFG", "View: Show Hex"
+    - Make commands easy to find with multiple keywords
+  </Accordion>
+  
+  <Accordion title="Visibility">
+    - Hide commands that aren't applicable in the current context
+    - Use `is_visible` to show view-specific commands only in relevant views
+    - Keep the command list focused and relevant
+  </Accordion>
+  
+  <Accordion title="Performance">
+    - Keep command execution fast for responsive UI
+    - Avoid heavy operations in command constructors
+    - Use background jobs for long-running tasks
+  </Accordion>
+</AccordionGroup>
+
+## See Also
+
+- [Plugin System](/features/plugins) - Add custom commands via plugins
+- [Keyboard Shortcuts](/reference/keyboard-shortcuts) - Learn all keyboard shortcuts
+- [Views](/user-guide/views) - Understanding view-specific commands

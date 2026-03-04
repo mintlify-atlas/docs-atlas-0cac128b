@@ -1,0 +1,128 @@
+---
+title: Keyboard Shortcuts
+description: Complete reference of keyboard shortcuts in angr Management
+---
+
+angr Management provides extensive keyboard shortcuts to help you navigate and analyze binaries efficiently. This page lists all available keyboard shortcuts organized by category.
+
+## Global Shortcuts
+
+### Navigation
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Alt+1` through `Alt+9` | Switch to View 1-9 | Quickly switch between the first 9 open views |
+| `Alt+0` | Switch to View 10 | Switch to the 10th open view |
+| `Ctrl+Tab` | Next Tab | Navigate to the next tab |
+| `Ctrl+Shift+Tab` | Previous Tab | Navigate to the previous tab |
+| `Shift+Shift` | Go to Anything | Press Shift twice to open the go-to palette |
+
+### File Operations
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Ctrl+O` | Open Binary | Open a new binary file for analysis |
+| `Ctrl+L` | Load Database | Load a saved angr database |
+| `Ctrl+S` | Save Database | Save the current analysis as an angr database |
+| `Ctrl+Shift+S` | Save Database As | Save the database with a new name |
+| `Ctrl+Shift+T` | Load Trace | Load a trace file |
+| `Ctrl+Comma` | Preferences | Open the preferences dialog |
+
+### View Management
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Ctrl+N` | New Graph Disassembly | Create a new graph disassembly view |
+| `Ctrl+Shift+P` | Command Palette | Open the command palette to search and execute commands |
+
+### Help
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Alt+H` | Documentation | Open the angr Management documentation |
+
+## Analysis Shortcuts
+
+### Decompilation & Analysis
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `F4` | Run Analysis | Open the analysis options dialog |
+| `F5` | Decompile | Decompile the current function |
+| `Ctrl+B` | Proximity Browser | View the current function in the proximity browser |
+| `Ctrl+I` | Interrupt Job / AI Refine All | Interrupt the current running job, or trigger AI refinement |
+
+### Debugging
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `F2` | Toggle Breakpoint | Toggle execution breakpoint at the current address |
+| `F7` | Step Forward | Execute a single step forward in symbolic execution |
+| `F9` | Continue | Continue execution until next breakpoint |
+
+## View-Specific Shortcuts
+
+### Disassembly View
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `G` | Go to Address | Jump to a specific address |
+| `N` | Rename Label | Rename the label at the current address |
+| `X` | Cross References | Show cross-references (XREFs) for the selected item |
+| `Tab` | Switch View | Toggle between graph and linear disassembly views |
+| `Space` | Follow Jump | Follow the jump or call at the current instruction |
+| `Esc` | Go Back | Navigate back in the jump history |
+
+### Pseudocode View
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `G` | Go to Address | Jump to a specific address |
+| `N` | Rename Variable | Rename the variable under the cursor |
+| `X` | Cross References | Show cross-references for the selected item |
+| `Y` | Retype Variable | Change the type of the variable under the cursor |
+| `Tab` | Cycle Focus | Switch focus within the pseudocode view |
+| `Space` | Navigate to Definition | Jump to the definition or follow the call |
+| `Esc` | Go Back | Navigate back in the jump history |
+| `Ctrl+-` | Zoom Out | Decrease font size |
+| `Ctrl+=` | Zoom In | Increase font size |
+| `/` or `?` | Search | Open search functionality |
+
+### Hex View
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `G` | Go to Address | Jump to a specific address in the hex view |
+| `Space` | Edit Byte | Edit the byte at the current position |
+
+## Context Menu Shortcuts
+
+When right-clicking in various views, you can use these shortcuts:
+
+| Shortcut | Action | Context |
+|----------|--------|--------|
+| `Ctrl+C` | Copy | Copy selected text from log or console |
+
+## Plugin Shortcuts
+
+Some plugins provide additional shortcuts:
+
+### Precise Diffing Plugin
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Tab` | Switch Diff View | Toggle between different diff views |
+| `F5` | Refresh Diff | Refresh the diff view |
+
+### Value Search Plugin
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `X` | Show XREFs | Show cross-references for the selected value |
+
+## Tips
+
+- Most shortcuts are context-aware and will only work when the relevant view is focused
+- You can customize many aspects of angr Management through the Preferences dialog (`Ctrl+Comma`)
+- The Command Palette (`Ctrl+Shift+P`) provides fuzzy search for all available commands
+- Press `Shift` twice quickly to open the "Go to Anything" palette for quick navigation

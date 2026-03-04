@@ -1,0 +1,406 @@
+---
+title: Frequently Asked Questions
+description: Common questions about angr Management installation, usage, and features
+---
+
+Find answers to the most commonly asked questions about angr Management.
+
+## General Questions
+
+<AccordionGroup>
+  <Accordion title="What is angr Management?">
+    angr Management is the official graphical user interface for the angr binary analysis framework. It provides a comprehensive environment for reverse engineering, binary analysis, decompilation, and symbolic execution. Built on top of the powerful angr analysis platform, it offers both interactive and automated analysis capabilities.
+
+    Key features include:
+    - Interactive disassembly (graph and linear views)
+    - Decompilation to pseudocode
+    - Symbolic execution
+    - Control flow graph visualization
+    - Cross-reference analysis
+    - AI-assisted analysis features
+  </Accordion>
+
+  <Accordion title="What platforms are supported?">
+    angr Management is cross-platform and runs on:
+    - **Linux** (Ubuntu, Debian, Fedora, Arch, etc.)
+    - **macOS** (10.13 or later)
+    - **Windows** (10 or later)
+
+    It requires Python 3.10 or later. The application uses PySide6 (Qt) for its GUI, which provides native look and feel on all platforms.
+  </Accordion>
+
+  <Accordion title="What binary formats are supported?">
+    Through the CLE (CLE Loads Everything) loader, angr Management supports:
+    - **ELF** (Linux executables and libraries)
+    - **PE** (Windows executables and DLLs)
+    - **Mach-O** (macOS executables and frameworks)
+    - **COFF** objects
+    - **CGC** (DARPA Cyber Grand Challenge binaries)
+    - Firmware images and raw binary blobs
+
+    angr Management can handle both 32-bit and 64-bit binaries across multiple architectures.
+  </Accordion>
+
+  <Accordion title="What architectures are supported?">
+    angr Management supports analysis of binaries for:
+    - x86 and x86-64 (best supported)
+    - ARM and ARM64/AArch64
+    - MIPS (32 and 64-bit)
+    - PowerPC
+    - And many others through the archinfo library
+
+    Note: Support quality varies by architecture, with x86/x64 having the most mature analysis capabilities.
+  </Accordion>
+
+  <Accordion title="Is angr Management free and open source?">
+    Yes! angr Management is completely free and open source under the BSD 2-Clause license. You can:
+    - Use it for any purpose (commercial or personal)
+    - Modify the source code
+    - Contribute improvements back to the project
+
+    Source code is available at: https://github.com/angr/angr-management
+  </Accordion>
+</AccordionGroup>
+
+## Installation & Setup
+
+<AccordionGroup>
+  <Accordion title="How do I install angr Management?">
+    The recommended installation method is via pip:
+
+    ```bash
+    pip install angr-management
+    ```
+
+    For development or the latest features:
+
+    ```bash
+    pip install git+https://github.com/angr/angr-management.git
+    ```
+
+    We strongly recommend using a virtual environment to avoid dependency conflicts:
+
+    ```bash
+    python -m venv angr-env
+    source angr-env/bin/activate  # On Windows: angr-env\Scripts\activate
+    pip install angr-management
+    ```
+  </Accordion>
+
+  <Accordion title="What are the system requirements?">
+    **Minimum Requirements:**
+    - Python 3.10 or later
+    - 4GB RAM
+    - 2GB free disk space
+
+    **Recommended:**
+    - Python 3.11 or later
+    - 16GB RAM or more
+    - 10GB free disk space
+    - Multi-core processor
+
+    More RAM is better when analyzing large binaries or performing symbolic execution. Complex analysis tasks can be memory-intensive.
+  </Accordion>
+
+  <Accordion title="How do I launch angr Management?">
+    After installation, you can launch angr Management in several ways:
+
+    **From command line:**
+    ```bash
+    python -m angrmanagement
+    ```
+
+    **On Linux/macOS, if installed globally:**
+    ```bash
+    angr-management
+    ```
+
+    **To load a binary directly:**
+    ```bash
+    python -m angrmanagement /path/to/binary
+    ```
+  </Accordion>
+
+  <Accordion title="Why am I getting PySide6 errors?">
+    PySide6 (Qt bindings) can be tricky to install. Try these solutions:
+
+    1. Ensure you have system dependencies:
+       - **Ubuntu/Debian:** `sudo apt-get install python3-dev libxcb-xinerama0`
+       - **macOS:** `xcode-select --install`
+
+    2. Install PySide6 separately first:
+       ```bash
+       pip install PySide6-Essentials>=6.4.2
+       ```
+
+    3. Use a clean virtual environment
+
+    4. Check that you're using Python 3.10 or later
+
+    Note: Version 6.7.0 of PySide6 has known issues and is excluded by angr Management.
+  </Accordion>
+</AccordionGroup>
+
+## Using angr Management
+
+<AccordionGroup>
+  <Accordion title="How do I load a binary for analysis?">
+    There are several ways to load a binary:
+
+    1. **File Menu:** File → Load a new binary (`Ctrl+O`)
+    2. **Command Line:** `python -m angrmanagement /path/to/binary`
+    3. **Drag and Drop:** Drag a binary file into the angr Management window
+
+    After loading, angr Management will automatically:
+    - Detect the binary format and architecture
+    - Generate an initial CFG (if enabled)
+    - Identify entry points
+    - Load FLIRT signatures for library recognition
+  </Accordion>
+
+  <Accordion title="How do I decompile a function?">
+    To decompile a function to pseudocode:
+
+    1. Navigate to the function in the Disassembly view
+    2. Press `F5` or select Analyze → Decompile
+    3. The Pseudocode view will open with the decompiled C-like code
+
+    You can also:
+    - Double-click a function in the Functions view
+    - Right-click a function and select "Decompile"
+    - Use the Command Palette (`Ctrl+Shift+P`) and search for "decompile"
+  </Accordion>
+
+  <Accordion title="How do I rename variables and functions?">
+    **Rename Functions:**
+    - Navigate to the function
+    - Press `N` in the Disassembly view
+    - Enter the new name
+
+    **Rename Variables (in Pseudocode):**
+    - Click on a variable
+    - Press `N`
+    - Enter the new name
+
+    **Retype Variables:**
+    - Click on a variable in Pseudocode view
+    - Press `Y`
+    - Specify the new type
+  </Accordion>
+
+  <Accordion title="What's the difference between Graph and Linear disassembly?">
+    **Graph Disassembly:**
+    - Shows control flow as a flowchart
+    - Visual representation of branches and loops
+    - Better for understanding program logic
+    - Uses more screen space
+
+    **Linear Disassembly:**
+    - Traditional sequential instruction listing
+    - More compact view
+    - Better for examining specific instruction sequences
+    - Easier to navigate with keyboard
+
+    Press `Tab` in the Disassembly view to switch between them. Create a new view with `Ctrl+N`.
+  </Accordion>
+
+  <Accordion title="How do I save my analysis?">
+    angr Management uses the angr database (.adb) format:
+
+    1. **Save:** `Ctrl+S` - saves to current database file
+    2. **Save As:** `Ctrl+Shift+S` - saves to a new file
+
+    The database includes:
+    - Analysis results (CFG, decompilation, etc.)
+    - Function names and comments
+    - Variable types and names
+    - Breakpoints and patches
+
+    Loading an .adb file is much faster than re-analyzing the binary.
+  </Accordion>
+
+  <Accordion title="How do I use symbolic execution?">
+    To perform symbolic execution:
+
+    1. Open View → Symbolic Execution
+    2. Click "New State" to create an initial symbolic state
+    3. Set execution options:
+       - Start address
+       - Find addresses (goals)
+       - Avoid addresses (paths to skip)
+    4. Click "Execute" to start
+    5. Monitor progress in the States view
+    6. Set breakpoints with `F2` if needed
+
+    Use `F7` to step and `F9` to continue execution.
+  </Accordion>
+
+  <Accordion title="What are the AI-assisted features?">
+    angr Management includes several AI-powered analysis features:
+
+    - **Variable Name Suggestions:** AI suggests meaningful variable names
+    - **Function Name Suggestions:** Infers function purposes and suggests names
+    - **Variable Type Inference:** Suggests appropriate types for variables
+    - **Function Summarization:** Generates natural language descriptions
+    - **Decompilation Refinement:** Improves decompiled code quality
+
+    Access these through the AI menu or use `Ctrl+I` for "Refine All".
+
+    Note: AI features may require configuration and API access to language models.
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Features
+
+<AccordionGroup>
+  <Accordion title="How do I analyze obfuscated binaries?">
+    Analyzing obfuscated binaries can be challenging:
+
+    1. **CFG Recovery:** Use aggressive CFG options (F4)
+    2. **Deobfuscation:** Check if plugins exist for specific obfuscation types
+    3. **Manual Analysis:** Use the Hex view and Disassembly view together
+    4. **Symbolic Execution:** May help understand opaque predicates
+    5. **Python Console:** Write custom analysis scripts via View → Console
+
+    Some obfuscation techniques may prevent full automatic analysis. Manual intervention may be required.
+  </Accordion>
+
+  <Accordion title="Can I write custom analyses?">
+    Yes! angr Management provides several ways to extend functionality:
+
+    1. **Python Console:** Access via View → Console for interactive scripting
+    2. **Plugins:** Write plugins to add new features and views
+    3. **Direct angr API:** Access the full angr API through the console
+
+    Example console usage:
+    ```python
+    # Access the current project
+    proj = instance.project
+    
+    # Run custom analyses
+    cfg = proj.analyses.CFGFast()
+    
+    # Access functions
+    for func in proj.kb.functions.values():
+        print(func.name, hex(func.addr))
+    ```
+  </Accordion>
+
+  <Accordion title="How do I use the Command Palette?">
+    The Command Palette (`Ctrl+Shift+P`) provides quick access to all commands:
+
+    1. Press `Ctrl+Shift+P` to open
+    2. Type to search for commands (fuzzy search supported)
+    3. Use arrow keys to navigate
+    4. Press Enter to execute
+
+    This is the fastest way to discover and execute features without navigating menus.
+  </Accordion>
+
+  <Accordion title="What plugins are available?">
+    angr Management supports plugins that extend functionality. Some available plugins:
+
+    - **BinSync:** Collaborative reverse engineering
+    - **Precise Diffing:** Advanced binary diffing
+    - **Value Search:** Search for specific values in memory
+
+    Load plugins via File → Plugins. Plugin development is supported through the angr Management API.
+  </Accordion>
+
+  <Accordion title="How do I export analysis results?">
+    You can export various analysis artifacts:
+
+    1. **Pseudocode:** Copy from the Pseudocode view
+    2. **Patches:** File → Save patched binary as...
+    3. **Database:** Save as .adb to preserve all analysis
+    4. **Screenshots:** Use your OS screenshot functionality
+    5. **Python Scripts:** Write custom export logic in the Console
+
+    For programmatic export, use the angr API through the console.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Why is analysis taking so long?">
+    Analysis time depends on several factors:
+
+    1. **Binary Size:** Larger binaries take longer
+    2. **Analysis Scope:** Full-binary CFG vs. targeted analysis
+    3. **System Resources:** More RAM and CPU cores help
+    4. **Complexity:** Obfuscated code takes longer
+
+    To speed up analysis:
+    - Use targeted analysis on specific functions
+    - Disable automatic CFG generation
+    - Save and reload from .adb files
+    - Close unused views
+    - Adjust analysis options in Preferences
+  </Accordion>
+
+  <Accordion title="Why is the decompilation incorrect?">
+    Decompilation is a best-effort process and may not always be perfect:
+
+    - **Optimization:** Heavily optimized code is harder to decompile
+    - **Obfuscation:** Intentionally obscured code
+    - **Missing Type Info:** Without symbols, types must be inferred
+    - **Unusual Patterns:** Non-standard code patterns
+
+    Improve results by:
+    - Manually fixing variable types (Y key)
+    - Renaming variables (N key)
+    - Using AI refinement features
+    - Adjusting decompilation settings
+    - Comparing with disassembly view
+  </Accordion>
+
+  <Accordion title="How do I report bugs or request features?">
+    We welcome bug reports and feature requests!
+
+    1. **GitHub Issues:** https://github.com/angr/angr-management/issues
+       - Search existing issues first
+       - Include version info: `pip show angr-management`
+       - Provide steps to reproduce
+       - Include relevant logs
+
+    2. **Community Discussion:**
+       - angr Slack: Get invite at https://angr.io
+       - GitHub Discussions
+
+    3. **Pull Requests:** Contributions are welcome!
+  </Accordion>
+</AccordionGroup>
+
+## Learning Resources
+
+<AccordionGroup>
+  <Accordion title="Where can I learn more about angr?">
+    **Official Resources:**
+    - angr Documentation: https://docs.angr.io
+    - angr Management Docs: https://angr-management.readthedocs.io
+    - angr API Docs: https://angr.io/api-doc/
+
+    **Community Resources:**
+    - angr examples: https://github.com/angr/angr-examples
+    - angr CTF: https://github.com/angr/angr-ctf
+    - Blog posts and tutorials from the community
+
+    **Getting Help:**
+    - angr Slack workspace
+    - GitHub issues and discussions
+    - Stack Overflow (tag: angr)
+  </Accordion>
+
+  <Accordion title="Are there any tutorials or courses?">
+    While there isn't an official angr Management course, you can learn through:
+
+    1. **angr CTF:** Hands-on challenges designed to teach angr
+    2. **Documentation Examples:** The docs include many practical examples
+    3. **Conference Talks:** Search for angr presentations on YouTube
+    4. **Community Tutorials:** Blog posts and writeups from users
+    5. **Source Code:** Reading the angr Management source is educational
+
+    The best way to learn is by using it on real binaries and experimenting!
+  </Accordion>
+</AccordionGroup>

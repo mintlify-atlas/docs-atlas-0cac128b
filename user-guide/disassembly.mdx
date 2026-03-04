@@ -1,0 +1,435 @@
+---
+title: Disassembly View
+description: Master the primary disassembly view for analyzing assembly code
+---
+
+The Disassembly View is the core of angr Management, providing a powerful interface for examining assembly code with multiple display modes and representation levels.
+
+## Display Modes
+
+The Disassembly View supports two primary display modes:
+
+<Tabs>
+  <Tab title="Graph View">
+    **Control Flow Graph Visualization**
+    
+    - Visual representation of basic blocks
+    - Color-coded edges (true/false/direct jumps)
+    - Block relationships at a glance
+    - Zoom and pan controls
+    - Minimap for navigation
+    
+    **Perfect for:**
+    - Understanding program flow
+    - Identifying loops and conditionals
+    - Finding code patterns
+  </Tab>
+  <Tab title="Linear View">
+    **Traditional Linear Disassembly**
+    
+    - Sequential instruction listing
+    - Continuous scrolling
+    - Address-based navigation
+    - Ideal for detailed analysis
+    
+    **Perfect for:**
+    - Reading code sequentially
+    - Examining data sections
+    - Finding specific instructions
+  </Tab>
+</Tabs>
+
+**Toggle between modes:** Press `Space` or click the view mode button.
+
+## Representation Levels
+
+View assembly code at different abstraction levels:
+
+<AccordionGroup>
+  <Accordion title="Machine Code" defaultOpen>
+    Native assembly instructions for the target architecture.
+    
+    ```asm
+    push    rbp
+    mov     rbp, rsp
+    sub     rsp, 0x10
+    mov     dword ptr [rbp-4], edi
+    ```
+    
+    **Use when:** You need to see exact CPU instructions.
+  </Accordion>
+  
+  <Accordion title="Lifter IR (VEX)">
+    VEX intermediate representation used by angr internally.
+    
+    ```
+    t0 = GET:I64(rsp)
+    t1 = Sub64(t0,0x0000000000000008)
+    PUT(rsp) = t1
+    STle(t1) = GET:I64(rbp)
+    ```
+    
+    **Use when:** Debugging angr analyses or understanding lifting.
+  </Accordion>
+  
+  <Accordion title="AIL (angr Intermediate Language)">
+    Higher-level representation closer to C code.
+    
+    ```c
+    rsp = (rsp - 8)
+    *(uint64_t*)rsp = rbp
+    rbp = rsp
+    ```
+    
+    **Use when:** Analyzing program logic at a higher level.
+  </Accordion>
+</AccordionGroup>
+
+**Switch levels:**
+- View → View Machine Code
+- View → View Lifter IR
+- View → View AIL
+- Or use the command palette (`Ctrl+Shift+P`)
+
+## Graph View Features
+
+### Navigation
+
+<Steps>
+  <Step title="Pan">
+    Click and drag on the background
+  </Step>
+  <Step title="Zoom">
+    - Mouse wheel to zoom in/out
+    - `Ctrl` + `+` / `-` for precise zoom
+    - `Ctrl` + `0` to reset zoom
+  </Step>
+  <Step title="Jump">
+    - Click on call/jump targets
+    - Press `G` to jump to address
+    - Use `Alt+Left/Right` for history
+  </Step>
+</Steps>
+
+### Minimap
+
+The minimap provides:
+
+- Bird's-eye view of entire function
+- Current viewport indicator (red rectangle)
+- Quick navigation by clicking
+- Visual function complexity indicator
+
+<Tip>
+Toggle the minimap with **Disassembly: Toggle Minimap** command.
+</Tip>
+
+### Edge Colors
+
+Edges are color-coded to show control flow:
+
+| Color | Meaning |
+|-------|--------|
+| **Blue** (Cyan) | True branch / conditional taken |
+| **Red** | False branch / conditional not taken |
+| **Gray** | Direct jump / unconditional |
+| **Orange** | Exception edge |
+| **Yellow/Gold** | Back edge / loop |
+
+### Block Highlighting
+
+- **Gray border**: Normal block
+- **Dark border**: Selected block
+- **Blue background**: Selected instruction
+- **Colored backgrounds**: User-defined highlights
+
+## Linear View Features
+
+### Navigation
+
+- **Scroll**: Mouse wheel or scrollbar
+- **Jump**: Press `G` and enter address
+- **Search**: `Ctrl+F` to find instructions
+- **Page Up/Down**: Navigate by page
+
+### Address Display
+
+Each line shows:
+- **Address**: Memory address in hex
+- **Bytes**: Raw instruction bytes (optional)
+- **Mnemonic**: Instruction name
+- **Operands**: Instruction arguments
+- **Comments**: User annotations
+
+## Smart Highlighting
+
+Smart highlighting shows relationships between code elements:
+
+<Tabs>
+  <Tab title="Variable Highlighting">
+    Click on a variable to highlight:
+    - All uses of the same variable
+    - Definitions and assignments
+    - Related memory operations
+    
+    **Toggle:** Press `A` or use **Disassembly: Toggle Smart Highlighting**
+  </Tab>
+  <Tab title="Text Highlighting">
+    When smart highlighting is off:
+    - Highlights exact text matches
+    - Simple string matching
+    - Useful for finding similar instructions
+  </Tab>
+</Tabs>
+
+## Display Options
+
+### Addresses
+
+Toggle address display:
+
+- **Show**: Addresses visible before each instruction
+- **Hide**: More compact view, better for reading code
+
+**Toggle:** **Disassembly: Toggle Addresses** command
+
+### Variables
+
+Control variable display:
+
+<CardGroup cols={2}>
+  <Card title="Show Variables" icon="eye">
+    Display variable names instead of registers/offsets
+  </Card>
+  <Card title="Show Identifiers" icon="fingerprint">
+    Show variable IDs for disambiguation
+  </Card>
+</CardGroup>
+
+**Commands:**
+- **Disassembly: Toggle Variables**
+- **Disassembly: Toggle Variable Identifiers**
+
+### Exception Edges
+
+Control display of exception handling:
+
+- **Show**: Display exception edges and exception-only blocks
+- **Hide**: Cleaner graph, focus on normal flow
+
+**Toggle:** **Disassembly: Toggle Exception Edges**
+
+## Context Menus
+
+### Instruction Context Menu
+
+Right-click on an instruction:
+
+<AccordionGroup>
+  <Accordion title="Navigation">
+    - Jump to address
+    - Follow call/jump target
+    - Show cross-references
+  </Accordion>
+  
+  <Accordion title="Analysis">
+    - Decompile function
+    - Run dependency analysis
+    - View function documentation
+  </Accordion>
+  
+  <Accordion title="Modification">
+    - Add comment
+    - Rename label
+    - Patch instruction
+    - Set breakpoint
+  </Accordion>
+  
+  <Accordion title="Debugging">
+    - Toggle execution breakpoint
+    - Create new state here
+    - Set as find/avoid address
+  </Accordion>
+</AccordionGroup>
+
+### Label Context Menu
+
+Right-click on a label or function name:
+
+- Rename function/label
+- Jump to references
+- Show function info
+- Copy address
+
+## Annotations
+
+The disassembly view displays various annotations:
+
+### Comments
+
+Add comments to instructions:
+
+1. Click on instruction (or press `;`)
+2. Type your comment
+3. Press Enter to save
+
+**Comment Types:**
+- **Inline**: Appear after instruction
+- **Block**: Appear before basic block
+- **Function**: Appear before function
+
+### Cross-References
+
+`XREF` annotations show:
+- Where functions are called from
+- Where data is accessed
+- Jump sources
+
+### Breakpoints
+
+Active breakpoints shown with:
+- Red dot icon
+- Highlighted instruction
+- Tooltip with breakpoint details
+
+### Hooks
+
+Hooked addresses marked with:
+- Hook icon
+- Custom background color
+- Hook type in tooltip
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `G` | Jump to address |
+| `Space` | Toggle graph/linear view |
+| `Tab` | Switch to pseudocode |
+| `;` | Add/edit comment |
+| `N` | Rename label |
+| `X` | Show cross-references |
+| `A` | Toggle smart highlighting |
+| `C` | Define as code |
+| `U` | Undefine code |
+| `Alt+Left` | Navigate back |
+| `Alt+Right` | Navigate forward |
+| `Esc` | Navigate back |
+
+## Working with Functions
+
+### Displaying Functions
+
+1. **From Functions View**: Double-click function
+2. **By Address**: Press `G` and enter address
+3. **From References**: Click on call/jump target
+4. **From History**: Use `Alt+Left/Right`
+
+### Function Information
+
+The status bar shows:
+- Current function name
+- Function address
+- Function size
+- Number of basic blocks
+
+### Defining Functions
+
+If code isn't recognized as a function:
+
+1. Navigate to the address
+2. Use Analysis → Define Function
+3. Or right-click and select "Define Function"
+
+## Variable Recovery
+
+The disassembly view integrates variable information:
+
+<Tabs>
+  <Tab title="Fast Mode">
+    Quick variable recovery:
+    - Register-based variables
+    - Stack variables with simple offsets
+    - Minimal type inference
+    
+    **Default mode**, automatically runs.
+  </Tab>
+  <Tab title="Accurate Mode">
+    Deep variable analysis:
+    - Complex pointer tracking
+    - Structure field recovery
+    - Advanced type inference
+    - Slower but more complete
+    
+    **Enable via:** Analyze → Run Analysis with variable recovery options
+  </Tab>
+</Tabs>
+
+## Patching Instructions
+
+Modify assembly code directly:
+
+<Steps>
+  <Step title="Open Patch Dialog">
+    Right-click instruction → "Patch Instruction"
+  </Step>
+  <Step title="Enter New Code">
+    Type assembly code (e.g., `nop`, `mov rax, 0`)
+  </Step>
+  <Step title="Apply">
+    Patch is applied and visible immediately
+  </Step>
+  <Step title="Review">
+    View all patches in the Patches view
+  </Step>
+</Steps>
+
+<Warning>
+Patches modify the in-memory representation but don't change the original file. Use **File → Save Patched Binary** to export.
+</Warning>
+
+## View Synchronization
+
+Synchronize multiple disassembly views:
+
+1. Open multiple disassembly views
+2. Right-click → "Synchronize with"
+3. Select target view
+4. Cursor and selection stay in sync
+
+**Use Cases:**
+- Compare different functions
+- View same code at different levels
+- Multi-monitor analysis
+
+## Performance Tips
+
+<CardGroup cols={2}>
+  <Card title="Large Functions" icon="chart-simple">
+    - Use linear view for very large functions
+    - Disable minimap if slow
+    - Hide exception edges to simplify graph
+  </Card>
+  <Card title="Complex Graphs" icon="diagram-project">
+    - Zoom out for overview
+    - Use jump history instead of scrolling
+    - Consider decompilation for readability
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Decompilation" icon="code" href="/user-guide/decompilation">
+    Learn about the pseudocode view
+  </Card>
+  <Card title="Debugging" icon="bug" href="/user-guide/debugging">
+    Debug binaries with breakpoints
+  </Card>
+  <Card title="Patching" icon="wrench" href="/user-guide/patching">
+    Modify and patch binaries
+  </Card>
+  <Card title="Configuration" icon="gear" href="/user-guide/configuration">
+    Customize disassembly colors and fonts
+  </Card>
+</CardGroup>

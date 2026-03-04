@@ -1,0 +1,418 @@
+---
+title: UI Components
+description: Core UI components and widgets in angr Management
+---
+
+## Overview
+
+angr Management provides a rich set of UI components built on PySide6 (Qt6) for creating interactive binary analysis interfaces. The UI framework is located in `angrmanagement/ui/` and includes widgets, dialogs, views, and specialized graphics components.
+
+## Core Widget Categories
+
+### Base Graphics Components
+
+All custom graphics items inherit from `QCachedGraphicsItem`, which provides caching and performance optimizations:
+
+```python
+from angrmanagement.ui.widgets.qgraph_object import QCachedGraphicsItem
+
+class CustomGraphicsItem(QCachedGraphicsItem):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        
+    def _boundingRect(self):
+        # Return the bounding rectangle
+        return QRectF(0, 0, width, height)
+        
+    def paint(self, painter, option, widget=None):
+        # Implement painting logic
+        pass
+```
+
+**Key Methods:**
+- `clear_cache()` - Invalidate cached bounding rectangle
+- `recalculate_size()` - Force recalculation of size
+- `boundingRect()` - Get cached bounding rectangle
+
+### Block Components
+
+Blocks represent code sections in the disassembly view. The base class is `QBlock` (`angrmanagement/ui/widgets/qblock.py`).
+
+#### QBlock
+
+Base class for displaying code blocks:
+
+```python
+from angrmanagement.ui.widgets.qblock import QBlock, QGraphBlock, QLinearBlock
+
+class QGraphBlock(QBlock):
+    """Block displayed in graph view with shadow and hover effects"""
+    MINIMUM_DETAIL_LEVEL = 0.4
+    SHADOW_OFFSET_X = 5
+    SHADOW_OFFSET_Y = 5
+    
+class QLinearBlock(QBlock):
+    """Block displayed in linear disassembly view"""
+    pass
+```
+
+**Block Properties:**
+- `addr` - Block address
+- `cfg_nodes` - CFG nodes contained in block
+- `objects` - Instructions and labels in the block
+- `addr_to_insns` - Mapping of addresses to instruction widgets
+- `addr_to_labels` - Mapping of addresses to label widgets
+
+**Block Methods:**
+- `refresh()` - Refresh block display
+- `reload()` - Reload block contents
+- `instruction_position(insn_addr)` - Get position of instruction
+
+### Graph Components
+
+#### QZoomableDraggableGraphicsView
+
+Provides zooming and panning functionality:
+
+```python
+from angrmanagement.ui.widgets.qgraph import QZoomableDraggableGraphicsView
+
+class CustomGraphView(QZoomableDraggableGraphicsView):
+    ZOOM_X = True  # Enable horizontal zoom
+    ZOOM_Y = True  # Enable vertical zoom
+    
+    def _initial_position(self):
+        # Return initial center position
+        return QPoint(0, 0)
+```
+
+**Zoom Methods:**
+- `zoom(out=False, at=None, reset=False, restore=False, factor=1.25)` - Zoom the view
+- `wheelEvent(event)` - Handle mouse wheel zoom (Ctrl+Wheel)
+- `keyPressEvent(event)` - Handle keyboard zoom (Ctrl+Plus/Minus/0)
+
+**Image Export:**
+```python
+view.save_image_to(
+    path="output.png",
+    top_margin=50,
+    bottom_margin=50,
+    left_margin=50,
+    right_margin=50
+)
+```
+
+### Input Widgets
+
+#### QAddressInput
+
+Specialized input field for addresses and function names:
+
+```python
+from angrmanagement.ui.widgets import QAddressInput
+
+def on_address_changed(text):
+    print(f"Address changed: {text}")
+
+address_input = QAddressInput(
+    textchanged_callback=on_address_changed,
+    instance=workspace.instance,
+    parent=dialog,
+    default="0x401000"
+)
+
+# Get the parsed address
+addr = address_input.target  # Returns int or None
+```
+
+**Features:**
+- Accepts hexadecimal addresses (e.g., "0x401000" or "401000")
+- Accepts function names (resolves from knowledge base)
+- Returns `None` for invalid input
+
+#### QStateComboBox
+
+Combobox for selecting simulation states:
+
+```python
+from angrmanagement.ui.widgets import QStateComboBox
+
+state_selector = QStateComboBox(
+    instance=workspace.instance,
+    allow_none=True,  # Allow "<None>" option
+    parent=dialog
+)
+
+# Get selected state
+selected_state = state_selector.state
+```
+
+### Table Widgets
+
+#### QFunctionTable
+
+Displays function information in a table:
+
+```python
+from angrmanagement.ui.widgets.qfunction_table import QFunctionTable, QFunctionTableModel
+
+# Model columns
+class QFunctionTableModel:
+    INLINE_COL = 0      # Inline indicator
+    NAME_COL = 1        # Function name
+    TAGS_COL = 2        # Function tags
+    ADDRESS_COL = 3     # Function address
+    BINARY_COL = 4      # Binary name
+    SIZE_COL = 5        # Function size
+    BLOCKS_COL = 6      # Number of blocks
+    COMPLEXITY_COL = 7  # Cyclomatic complexity
+```
+
+## Dialog Components
+
+All dialogs inherit from `QDialog` and follow a consistent pattern.
+
+### InputPromptDialog
+
+Generic text input dialog:
+
+```python
+from angrmanagement.ui.dialogs.input_prompt import InputPromptDialog
+
+dialog = InputPromptDialog(
+    window_title="Enter Name",
+    prompt_text="Function name:",
+    initial_input_text="sub_401000",
+    parent=main_window
+)
+
+if dialog.exec_():
+    result = dialog.result  # Get user input
+```
+
+### Dialog Structure Pattern
+
+```python
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QDialogButtonBox
+
+class CustomDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Custom Dialog")
+        
+        self.main_layout = QVBoxLayout()
+        self._init_widgets()
+        self.setLayout(self.main_layout)
+    
+    def _init_widgets(self):
+        # Create widgets
+        # ...
+        
+        # Add standard buttons
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self._on_ok_clicked)
+        buttons.rejected.connect(self.close)
+        self.main_layout.addWidget(buttons)
+    
+    def _on_ok_clicked(self):
+        # Validate and process
+        self.accept()
+```
+
+## Specialized Widgets
+
+### Icon Components
+
+```python
+from angrmanagement.ui.widgets import QIconLabel
+
+# Display icon with label
+icon_label = QIconLabel(
+    icon_path="path/to/icon.svg",
+    text="Label Text",
+    parent=widget
+)
+```
+
+### Feature Map
+
+```python
+from angrmanagement.ui.widgets import QFeatureMap
+
+# Visual representation of function locations in binary
+feature_map = QFeatureMap(
+    instance=workspace.instance,
+    parent=view
+)
+```
+
+### Annotation Widgets
+
+Display annotations on instructions:
+
+```python
+from angrmanagement.ui.widgets import (
+    QBreakAnnotation,  # Breakpoint indicator
+    QHookAnnotation,    # Hook indicator
+    QFindAddrAnnotation,  # Find/target address
+    QAvoidAddrAnnotation  # Avoid address
+)
+```
+
+## Graph Visualization
+
+### QDisassemblyGraph
+
+Main graph widget for function visualization:
+
+```python
+from angrmanagement.ui.widgets import QDisassemblyGraph
+
+graph = QDisassemblyGraph(
+    workspace=workspace,
+    instance=workspace.instance,
+    disasm_view=disassembly_view,
+    parent=view
+)
+
+# Refresh graph
+graph.reload()
+```
+
+### QSymExecGraph
+
+Symbolic execution state graph:
+
+```python
+from angrmanagement.ui.widgets import QSymExecGraph
+
+symexec_graph = QSymExecGraph(
+    instance=workspace.instance,
+    parent=symexec_view
+)
+```
+
+## Widget Configuration
+
+Access global configuration through `Conf`:
+
+```python
+from angrmanagement.config import Conf
+
+# Access configuration values
+font = Conf.disasm_font
+node_color = Conf.disasm_view_node_background_color
+rounding = Conf.disasm_view_node_rounding
+
+# Colors are QColor objects
+from PySide6.QtGui import QColor
+pen = QPen(Conf.disasm_view_node_border_color, 1.5)
+```
+
+## Best Practices
+
+### Performance Optimization
+
+1. **Use Caching**: Inherit from `QCachedGraphicsItem` for graphics items
+2. **Lazy Loading**: Load data only when visible
+3. **Level of Detail**: Hide complex rendering when zoomed out
+
+```python
+def paint(self, painter, option, widget=None):
+    lod = option.levelOfDetailFromTransform(painter.worldTransform())
+    if lod < 0.4:  # Minimum detail level
+        # Simplified rendering
+        painter.fillRect(self.boundingRect(), color)
+    else:
+        # Full detail rendering
+        self._render_full_detail(painter)
+```
+
+### Widget Lifecycle
+
+```python
+class CustomWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._init_widgets()
+        self._init_connections()
+    
+    def _init_widgets(self):
+        # Create child widgets
+        pass
+    
+    def _init_connections(self):
+        # Connect signals/slots
+        pass
+    
+    def refresh(self):
+        # Update display
+        pass
+    
+    def closeEvent(self, event):
+        # Cleanup
+        event.accept()
+```
+
+### Signal/Slot Connections
+
+```python
+from PySide6.QtCore import Signal
+
+class CustomWidget(QWidget):
+    # Define signals
+    value_changed = Signal(int)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        # Connect to slots
+        self.value_changed.connect(self._on_value_changed)
+    
+    def _on_value_changed(self, new_value):
+        # Handle signal
+        print(f"Value changed to: {new_value}")
+    
+    def set_value(self, value):
+        # Emit signal
+        self.value_changed.emit(value)
+```
+
+## Common Imports
+
+```python
+# Core widgets
+from angrmanagement.ui.widgets import (
+    QAddressInput,
+    QDisassemblyGraph,
+    QFeatureMap,
+    QStateComboBox,
+)
+
+# Graphics components
+from angrmanagement.ui.widgets.qgraph import (
+    QZoomableDraggableGraphicsView,
+    QSaveableGraphicsView,
+)
+from angrmanagement.ui.widgets.qblock import QBlock, QGraphBlock
+from angrmanagement.ui.widgets.qgraph_object import QCachedGraphicsItem
+
+# Dialogs
+from angrmanagement.ui.dialogs.input_prompt import InputPromptDialog
+from angrmanagement.ui.dialogs.about import LoadAboutDialog
+
+# Configuration
+from angrmanagement.config import Conf
+
+# Icons
+from angrmanagement.ui.icons import icon
+```
+
+## Next Steps
+
+- Learn about [Views and Widgets](/development/views-and-widgets)
+- Customize appearance with [Theming](/development/theming)
+- Explore the [API Reference](/reference/views)

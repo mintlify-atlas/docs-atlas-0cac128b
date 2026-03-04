@@ -1,0 +1,244 @@
+---
+title: Testing
+description: Learn how to run and write tests for angr Management
+---
+
+## Overview
+
+angr Management uses pytest for testing with coverage tracking. The test suite includes UI component tests, view tests, and integration tests.
+
+## Running Tests
+
+### Install Test Dependencies
+
+Install the testing dependency group:
+
+```bash
+uv sync --group testing
+```
+
+This installs the following test tools:
+- `pytest` - Test framework
+- `pytest-cov` - Coverage plugin
+- `pytest-durations` - Test timing analysis
+- `pytest-profiling` - Performance profiling
+- `pytest-split` - Test splitting for parallel runs
+- `pytest-timeout` - Test timeout enforcement
+- `pytest-xdist` - Parallel test execution
+- `coverage` - Coverage reporting
+
+### Basic Test Execution
+
+Run all tests:
+
+```bash
+pytest
+```
+
+Run tests with coverage:
+
+```bash
+pytest --cov=angrmanagement --cov-report=html
+```
+
+Run tests in parallel:
+
+```bash
+pytest -n auto
+```
+
+### Advanced Test Options
+
+Run with timeout (30 seconds per test):
+
+```bash
+pytest --timeout=30
+```
+
+Run with profiling:
+
+```bash
+pytest --profile
+```
+
+Show test durations:
+
+```bash
+pytest --durations=10
+```
+
+## Coverage Configuration
+
+Coverage settings are configured in `pyproject.toml`:
+
+```toml
+[tool.coverage.run]
+branch = true
+source = ["angrmanagement"]
+parallel = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = [
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+  "pragma: no cover",
+]
+```
+
+View the current coverage status:
+
+[![codecov](https://codecov.io/github/angr/angr-management/graph/badge.svg?token=H4QwMNfjb2)](https://codecov.io/github/angr/angr-management)
+
+## Writing Tests
+
+### Test Structure
+
+Tests are located in the `tests/` directory. Common test patterns:
+
+**Basic UI Component Test:**
+
+```python
+from __future__ import annotations
+
+from common import AngrManagementTestCase
+from PySide6.QtTest import QTest
+
+class TestMyComponent(AngrManagementTestCase):
+    def test_component_behavior(self):
+        # Test setup happens in setUp()
+        # self.main is available as MainWindow instance
+        component = MyComponent(self.main)
+        QTest.mouseClick(component.button, Qt.LeftButton)
+        self.assertEqual(component.value, expected_value)
+```
+
+**Test with Project Open:**
+
+```python
+from common import ProjectOpenTestCase
+import os
+
+class TestWithProject(ProjectOpenTestCase):
+    def test_analysis(self):
+        # self.project provides access to angr.Project
+        # self.workspace provides access to Workspace
+        # self.instance provides access to Instance
+        cfg = self.project.analyses.CFGFast()
+        self.assertIsNotNone(cfg)
+```
+
+### Test Base Classes
+
+The `tests/common.py` module provides base classes:
+
+#### `AngrManagementTestCase`
+
+Creates a headless MainWindow for UI testing:
+
+```python
+from common import AngrManagementTestCase
+
+class TestExample(AngrManagementTestCase):
+    def setUp(self):
+        super().setUp()
+        # self.main is now available
+        # self.app is the QApplication instance
+    
+    def tearDown(self):
+        super().tearDown()
+```
+
+#### `ProjectOpenTestCase`
+
+Extends `AngrManagementTestCase` with a loaded project:
+
+```python
+from common import ProjectOpenTestCase
+
+class TestWithProject(ProjectOpenTestCase):
+    def setUp(self):
+        super().setUp()
+        # Opens tests/../../binaries/tests/x86_64/true by default
+    
+    @property
+    def workspace(self):
+        return self.main.workspace
+    
+    @property
+    def instance(self):
+        return self.workspace.main_instance
+    
+    @property
+    def project(self):
+        return self.instance.project.am_obj
+```
+
+### Headless Testing
+
+Create a headless MainWindow by passing `show=False`:
+
+```python
+from angrmanagement.ui.main_window import MainWindow
+
+main = MainWindow(show=False)
+```
+
+This gives you access to:
+- Workspace instance
+- Instance management
+- All UI components without rendering
+
+### Using QTest
+
+Drive UI interactions with QTest:
+
+```python
+from PySide6.QtTest import QTest
+from PySide6.QtCore import Qt
+
+# Mouse clicks
+QTest.mouseClick(widget, Qt.LeftButton)
+QTest.mouseDClick(widget, Qt.LeftButton)
+
+# Keyboard input
+QTest.keyClick(widget, Qt.Key_Enter)
+QTest.keyClicks(widget, "text to type")
+
+# Wait for window
+QTest.qWaitForWindowActive(main_window)
+```
+
+### Coverage Support for QThread
+
+The test suite includes automatic QThread coverage patching via `conftest.py`. The `qthread_coverage` fixture patches `QThread.run` to enable coverage tracking in threaded code:
+
+```python
+@pytest.fixture(autouse=True)
+def qthread_coverage(monkeypatch):
+    """Patch QThread.run for coverage support."""
+    # Automatically applied to all tests
+```
+
+## Test Examples
+
+Explore existing tests for patterns:
+
+- `tests/test_main_window.py` - MainWindow shortcuts and event filters
+- `tests/test_disassembly_view.py` - Disassembly view testing
+- `tests/test_code_view.py` - Code/decompiler view testing
+- `tests/test_hex_view.py` - Hex editor testing
+- `tests/test_command_palette.py` - Command palette testing
+- `tests/test_qlinear_viewer.py` - Linear viewer component testing
+
+View all tests at: [github.com/angr/angr-management/tree/master/tests](https://github.com/angr/angr-management/tree/master/tests)
+
+## Continuous Integration
+
+Tests run automatically on:
+- Every pull request
+- Every commit to master
+- Nightly builds
+
+CI results are reported to codecov for coverage tracking.

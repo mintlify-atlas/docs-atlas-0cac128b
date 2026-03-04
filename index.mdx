@@ -1,97 +1,273 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "angr Management Documentation"
+description: "Cross-platform graphical binary analysis tool powered by the angr framework"
+mode: custom
 ---
 
-## Setting up
+<div className="relative overflow-hidden bg-gradient-to-br from-[#0f1117] to-[#1a1d27] dark:from-[#0f1117] dark:to-[#1a1d27] py-20">
+  <div className="max-w-6xl mx-auto px-6 lg:px-8">
+    <div className="grid lg:grid-cols-12 gap-12 items-center">
+      <div className="lg:col-span-7">
+        <h1 className="text-5xl sm:text-6xl font-bold text-white mb-6">
+          Welcome to angr Management
+        </h1>
+        <p className="text-xl text-gray-300 dark:text-gray-300 mb-8 max-w-2xl">
+          A powerful, cross-platform GUI for binary analysis. Disassemble, decompile, and debug executables with an intuitive interface powered by the angr framework.
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <a 
+            href="/quickstart" 
+            className="inline-flex items-center px-6 py-3 rounded-lg bg-[#63717a] hover:bg-[#7a8690] text-white font-semibold transition-colors no-underline"
+          >
+            Get Started
+            <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </a>
+          <a 
+            href="/installation" 
+            className="inline-flex items-center px-6 py-3 rounded-lg border border-white/30 bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors no-underline"
+          >
+            Installation
+          </a>
+        </div>
+      </div>
+      <div className="lg:col-span-5 hidden lg:block">
+        <div className="relative">
+          <div className="absolute inset-0 bg-[#63717a]/20 blur-3xl rounded-full"></div>
+          <img 
+            src="https://raw.githubusercontent.com/angr/angr-management/master/screenshots/disassembly.png" 
+            alt="angr Management interface showing disassembly view"
+            className="relative rounded-xl shadow-2xl border border-white/10"
+            noZoom
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Quick start</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Get up and running with angr Management in minutes</p>
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+  <Steps>
+    <Step title="Install angr Management">
+      Install via pip or download a pre-built release:
 
-## Make it yours
+      ```bash pip
+      pip install angr-management
+      ```
 
-Design a docs site that looks great and empowers your users.
+      Or download from [GitHub Releases](https://github.com/angr/angr-management/releases)
+    </Step>
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
+    <Step title="Launch the application">
+      Run angr Management from your terminal:
+
+      ```bash
+      angr-management
+      ```
+
+      Or use the shorter alias:
+
+      ```bash
+      am
+      ```
+    </Step>
+
+    <Step title="Load a binary">
+      Open a binary for analysis using **File → Load Binary** or drag and drop a file into the window.
+
+      <Note>
+        angr Management supports multiple architectures including x86, x64, ARM, MIPS, and more.
+      </Note>
+    </Step>
+
+    <Step title="Start analyzing">
+      Explore the disassembly view, switch to the decompilation view, or use the interactive console to run custom angr analyses.
+    </Step>
+  </Steps>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Explore by topic</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Comprehensive guides to help you master binary analysis</p>
+
+  <CardGroup cols={3}>
     <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
+      title="User Guide"
+      icon="book-open"
+      href="/user-guide/interface-overview"
+    >
+      Learn the interface, views, and core workflows
+    </Card>
+    <Card
+      title="Analysis Capabilities"
+      icon="microscope"
+      href="/features/analysis-capabilities"
+    >
+      Explore symbolic execution, CFG recovery, and more
+    </Card>
+    <Card
+      title="Decompilation"
+      icon="code"
+      href="/user-guide/decompilation"
+    >
+      Work with the interactive decompiler
+    </Card>
+    <Card
+      title="Plugins"
+      icon="puzzle-piece"
+      href="/features/plugins"
+    >
+      Extend functionality with the plugin system
+    </Card>
+    <Card
+      title="Collaborative Analysis"
+      icon="users"
+      href="/features/collaborative-analysis"
+    >
+      Share and sync analysis with your team
+    </Card>
+    <Card
+      title="Configuration"
+      icon="gear"
+      href="/user-guide/configuration"
+    >
+      Customize settings and preferences
+    </Card>
+  </CardGroup>
+</div>
 
-## Create beautiful pages
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Key features</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">What makes angr Management powerful</p>
 
-Everything you need to create world-class documentation.
+  <div className="grid md:grid-cols-2 gap-6">
+    <div className="p-6 rounded-xl border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#63717a]/10 dark:bg-[#63717a]/20 flex items-center justify-center">
+          <svg className="w-6 h-6 text-[#63717a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Multiple Views</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Switch between disassembly, decompilation, hex editor, function list, strings, and more
+          </p>
+        </div>
+      </div>
+    </div>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+    <div className="p-6 rounded-xl border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#63717a]/10 dark:bg-[#63717a]/20 flex items-center justify-center">
+          <svg className="w-6 h-6 text-[#63717a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Interactive Decompilation</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            High-quality decompilation with type inference and variable renaming
+          </p>
+        </div>
+      </div>
+    </div>
 
-## Need inspiration?
+    <div className="p-6 rounded-xl border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#63717a]/10 dark:bg-[#63717a]/20 flex items-center justify-center">
+          <svg className="w-6 h-6 text-[#63717a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">IPython Console</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Script custom analyses with full access to the angr API
+          </p>
+        </div>
+      </div>
+    </div>
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+    <div className="p-6 rounded-xl border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#63717a]/10 dark:bg-[#63717a]/20 flex items-center justify-center">
+          <svg className="w-6 h-6 text-[#63717a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Collaborative Analysis</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Share analysis sessions with binsync integration
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">For developers</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Build plugins and extend angr Management</p>
+
+  <CardGroup cols={2}>
+    <Card
+      title="Plugin Development"
+      icon="puzzle-piece"
+      href="/development/plugin-system"
+    >
+      Create custom plugins to extend functionality
+    </Card>
+    <Card
+      title="Architecture Overview"
+      icon="sitemap"
+      href="/development/architecture"
+    >
+      Understand the core architecture and components
+    </Card>
+    <Card
+      title="UI Components"
+      icon="window"
+      href="/development/ui-components"
+    >
+      Work with views, widgets, and dialogs
+    </Card>
+    <Card
+      title="API Reference"
+      icon="book"
+      href="/reference/workspace"
+    >
+      Explore the complete API documentation
+    </Card>
+  </CardGroup>
+</div>
+
+<div className="mt-20 mb-16 max-w-5xl mx-auto px-6">
+  <div className="rounded-2xl border border-gray-200 dark:border-[#27272a] bg-gradient-to-br from-gray-50 to-white dark:from-[#1a1d27] dark:to-[#0f1117] p-12 text-center">
+    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      Ready to start analyzing?
+    </h2>
+    <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
+      Install angr Management and start exploring binaries with powerful analysis capabilities
+    </p>
+    <div className="flex flex-wrap gap-4 justify-center">
+      <a 
+        href="/installation" 
+        className="inline-flex items-center px-6 py-3 rounded-lg bg-[#63717a] hover:bg-[#7a8690] text-white font-semibold transition-colors no-underline"
+      >
+        Install Now
+      </a>
+      <a 
+        href="/reference/faq" 
+        className="inline-flex items-center px-6 py-3 rounded-lg border border-gray-300 dark:border-[#27272a] bg-white dark:bg-[#1a1d27] hover:bg-gray-50 dark:hover:bg-[#242838] text-gray-900 dark:text-white font-semibold transition-colors no-underline"
+      >
+        View FAQ
+      </a>
+    </div>
+  </div>
+</div>

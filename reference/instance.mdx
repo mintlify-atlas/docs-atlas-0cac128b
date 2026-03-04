@@ -1,0 +1,354 @@
+---
+title: Instance
+description: The Instance class provides access to angr project objects like Project, CFG, and analyses
+---
+
+## Instance
+
+The `Instance` class provides access to normal angr project objects like a Project, CFG, and other analyses.
+
+### Constructor
+
+```python
+Instance()
+```
+
+Creates a new instance with default containers for project data.
+
+### Properties
+
+<ResponseField name="project" type="ObjectContainer[angr.Project | None]">
+  The current angr project
+</ResponseField>
+
+<ResponseField name="cfg" type="ObjectContainer[CFGModel | None]">
+  The current control flow graph
+</ResponseField>
+
+<ResponseField name="cfb" type="ObjectContainer[CFBlanket | None]">
+  The current CFBlanket (fast CFG representation)
+</ResponseField>
+
+<ResponseField name="kb" type="KnowledgeBase | None">
+  The knowledge base from the current project (read-only property)
+</ResponseField>
+
+<ResponseField name="simgrs" type="ObjectContainer[list[SimulationManager]]">
+  Global simulation managers list
+</ResponseField>
+
+<ResponseField name="states" type="ObjectContainer[list[SimState]]">
+  Global states list
+</ResponseField>
+
+<ResponseField name="patches" type="ObjectContainer">
+  Global patches update notifier
+</ResponseField>
+
+<ResponseField name="log" type="ObjectContainer[list[LogRecord]]">
+  Saved log messages
+</ResponseField>
+
+<ResponseField name="current_trace" type="ObjectContainer[Trace]">
+  Currently selected trace
+</ResponseField>
+
+<ResponseField name="traces" type="ObjectContainer[list[Trace]]">
+  Global traces list
+</ResponseField>
+
+<ResponseField name="active_view_state" type="ObjectContainer[ViewState]">
+  Currently focused view state
+</ResponseField>
+
+<ResponseField name="breakpoint_mgr" type="BreakpointManager">
+  Manager for breakpoints
+</ResponseField>
+
+<ResponseField name="signature_mgr" type="SignatureManager">
+  Manager for function signatures
+</ResponseField>
+
+<ResponseField name="debugger_list_mgr" type="DebuggerListManager">
+  Manager for the list of available debuggers
+</ResponseField>
+
+<ResponseField name="debugger_mgr" type="DebuggerManager">
+  Manager for the active debugger
+</ResponseField>
+
+<ResponseField name="analysis_configuration" type="AnalysesConfiguration | None">
+  Configuration for analyses to run
+</ResponseField>
+
+<ResponseField name="binary_path" type="str | None">
+  Current path to the loaded binary (local path if loaded from URL)
+</ResponseField>
+
+<ResponseField name="original_binary_path" type="str | None">
+  Original path or URL of the loaded binary
+</ResponseField>
+
+<ResponseField name="database_path" type="str | None">
+  Path to the angrDB database file
+</ResponseField>
+
+<ResponseField name="cfg_args" type="dict | None">
+  Arguments used for CFG generation
+</ResponseField>
+
+<ResponseField name="variable_recovery_args" type="dict | None">
+  Arguments used for variable recovery
+</ResponseField>
+
+<ResponseField name="pseudocode_variable_kb" type="KnowledgeBase | None">
+  Separate knowledge base for pseudocode variable information
+</ResponseField>
+
+### Methods
+
+#### register_container
+
+```python
+register_container(
+    name: str,
+    default_val_func: Callable,
+    ty: type,
+    description: str,
+    logging_permitted: bool = True
+) -> None
+```
+
+Register a new object container in the instance.
+
+<ParamField path="name" type="str" required>
+  Name of the container (will be accessible as instance attribute)
+</ParamField>
+
+<ParamField path="default_val_func" type="Callable" required>
+  Function that returns the default value for this container
+</ParamField>
+
+<ParamField path="ty" type="type" required>
+  Type of the container's value
+</ParamField>
+
+<ParamField path="description" type="str" required>
+  Human-readable description of the container
+</ParamField>
+
+<ParamField path="logging_permitted" type="bool" default="True">
+  Whether logging is allowed for this container's events
+</ParamField>
+
+#### initialize
+
+```python
+initialize(initialized: bool = False) -> None
+```
+
+Initialize the instance after a project is loaded.
+
+<ParamField path="initialized" type="bool" default="False">
+  Whether the instance has already been initialized
+</ParamField>
+
+#### initialize_pseudocode_variable_kb
+
+```python
+initialize_pseudocode_variable_kb() -> None
+```
+
+Initialize a separate knowledge base for pseudocode variable information.
+
+#### get_instruction_text_at
+
+```python
+get_instruction_text_at(addr: int) -> str | None
+```
+
+Get the text representation of an instruction at the specified address.
+
+<ParamField path="addr" type="int" required>
+  Address of the instruction
+</ParamField>
+
+<ResponseField name="return" type="str | None">
+  Text representation of the instruction, or None if no instruction is found
+</ResponseField>
+
+#### delete_hook
+
+```python
+delete_hook(addr: int) -> None
+```
+
+Remove a SimProcedure hook at the specified address.
+
+<ParamField path="addr" type="int" required>
+  Address of the hook to remove
+</ParamField>
+
+#### add_breakpoint
+
+```python
+add_breakpoint(
+    obj: str | int,
+    type_: str | None = None,
+    size: int | None = None
+) -> None
+```
+
+Add a breakpoint at the specified location.
+
+<ParamField path="obj" type="str | int" required>
+  Address (int) or symbol name (str) for the breakpoint
+</ParamField>
+
+<ParamField path="type_" type="str">
+  Breakpoint type: "execute", "write", or "read". Auto-detected if not provided.
+</ParamField>
+
+<ParamField path="size" type="int">
+  Size of the breakpoint in bytes
+</ParamField>
+
+**Examples:**
+
+```python
+# Set execution breakpoint at address
+instance.add_breakpoint(0x1234)
+
+# Set execution breakpoint on main function
+instance.add_breakpoint('main')
+
+# Set write breakpoint on global variable
+instance.add_breakpoint('global_value')
+
+# Set 1-byte read breakpoint
+instance.add_breakpoint('global_value', 'read', 1)
+```
+
+#### set_comment
+
+```python
+set_comment(addr: int, comment_text: str) -> None
+```
+
+Set or update a comment at the specified address.
+
+<ParamField path="addr" type="int" required>
+  Address to set the comment at
+</ParamField>
+
+<ParamField path="comment_text" type="str" required>
+  The comment text. Pass empty string or None to delete the comment.
+</ParamField>
+
+### Callbacks
+
+<ResponseField name="insn_backcolor_callback" type="Callable[[int, bool], None] | None">
+  Callback for instruction background color: `(addr: int, is_selected: bool) -> None`
+</ResponseField>
+
+<ResponseField name="label_rename_callback" type="Callable[[int, str], None] | None">
+  Callback for label rename: `(addr: int, new_name: str) -> None`
+</ResponseField>
+
+<ResponseField name="set_comment_callback" type="Callable[[int, str], None] | None">
+  Callback when a comment is set: `(addr: int, comment_text: str) -> None`
+</ResponseField>
+
+<ResponseField name="handle_comment_changed_callback" type="Callable[[int, str, bool, bool, bool], None] | None">
+  Callback when a comment changes: `(addr: int, comment: str, created: bool, decomp: bool, deleted: bool) -> None`
+</ResponseField>
+
+## ObjectContainer
+
+The `ObjectContainer` class is a proxy wrapper that adds event notification functionality to any object.
+
+### Constructor
+
+```python
+ObjectContainer(
+    obj: Any,
+    name: str | None = None,
+    logging_permitted: bool = True
+)
+```
+
+<ParamField path="obj" type="Any" required>
+  The object to wrap
+</ParamField>
+
+<ParamField path="name" type="str">
+  Name for the container (auto-generated if not provided)
+</ParamField>
+
+<ParamField path="logging_permitted" type="bool" default="True">
+  Whether logging is permitted for this container
+</ParamField>
+
+### Properties
+
+<ResponseField name="am_obj" type="Any">
+  The wrapped object (read/write)
+</ResponseField>
+
+<ResponseField name="am_none" type="bool">
+  True if the wrapped object is None
+</ResponseField>
+
+<ResponseField name="am_name" type="str">
+  The container's name
+</ResponseField>
+
+### Methods
+
+#### am_subscribe
+
+```python
+am_subscribe(listener: Callable) -> None
+```
+
+Subscribe to events from this container.
+
+<ParamField path="listener" type="Callable" required>
+  Callback function to invoke on events: `(**kwargs) -> None`
+</ParamField>
+
+#### am_unsubscribe
+
+```python
+am_unsubscribe(listener: Callable) -> None
+```
+
+Unsubscribe from events.
+
+<ParamField path="listener" type="Callable" required>
+  The listener to remove
+</ParamField>
+
+#### am_event
+
+```python
+am_event(**kwargs) -> None
+```
+
+Trigger an event, notifying all subscribers.
+
+<ParamField path="**kwargs" type="Any">
+  Arbitrary keyword arguments to pass to listeners
+</ParamField>
+
+#### am_event_gui
+
+```python
+am_event_gui(**kwargs) -> None
+```
+
+Trigger an event on the GUI thread.
+
+<ParamField path="**kwargs" type="Any">
+  Arbitrary keyword arguments to pass to listeners
+</ParamField>

@@ -1,0 +1,262 @@
+---
+title: Architecture
+description: Understanding angr Management's core architecture and component structure
+---
+
+<Warning>
+Please note that the documentation and the API for angr management are highly in-flux. You will need to spend time reading the source code. Grep is your friend. If you have questions, please ask in the [angr Discord server](https://angr.io/invite/).
+
+If you build something which uses an API and you want to make sure it doesn't break, you can contribute a testcase for the API!
+</Warning>
+
+## Core Components
+
+angr Management's architecture is built around three primary components that work together to provide a complete binary analysis environment:
+
+### MainWindow
+
+The `MainWindow` is the `QMainWindow` instance for the application. It serves as the top-level container and provides basic functions that correspond to top-level UI interactions.
+
+**Key Responsibilities:**
+- Loading binaries (both local files and URLs)
+- Managing menus (File, View, Analyze, AI, Help, Plugin)
+- Coordinating toolbars and status bar
+- Handling welcome and preference dialogs
+- Managing the dock system via Qt Advanced Docking System
+
+**Location:** `angrmanagement/ui/main_window.py`
+
+**Example - Creating a MainWindow:**
+```python
+from angrmanagement.ui.main_window import MainWindow
+from PySide6.QtWidgets import QApplication
+
+app = QApplication([])
+main_window = MainWindow(app=app, show=False)  # show=False for headless mode
+```
+
+### Workspace
+
+The `Workspace` is a lightweight object that coordinates UI elements and manages the tabbed environment. It provides access to all analysis-related GUI components.
+
+**Key Responsibilities:**
+- Managing views (Disassembly, Decompilation, Hex, Functions, etc.)
+- Coordinating job execution via `JobManager`
+- Managing plugins via `PluginManager`
+- Handling analysis operations via `AnalysisManager`
+- Providing command registration via `CommandManager`
+
+**Location:** `angrmanagement/ui/workspace.py`
+
+**Default Views:**
+```python
+default_tabs = [
+    DisassemblyView,
+    HexView,
+    CodeView,
+    FunctionsView,
+    ConsoleView,
+    LogView,
+    JobsView,
+]
+```
+
+**Example - Accessing the Workspace:**
+```python
+# workspace is available as an attribute on main_window
+workspace = main_window.workspace
+
+# Access the view manager
+view_manager = workspace.view_manager
+
+# Access the main instance
+instance = workspace.main_instance
+```
+
+### Instance
+
+The `Instance` is angr Management's data model. It contains mechanisms for synchronizing components on shared data sources and manages long-running jobs.
+
+**Key Responsibilities:**
+- Storing the angr `Project`, `CFG`, and other analyses
+- Managing ObjectContainers for reactive data updates
+- Coordinating breakpoints via `BreakpointManager`
+- Managing debuggers via `DebuggerManager`
+- Handling FLIRT signatures via `SignatureManager`
+- Logging application events
+
+**Location:** `angrmanagement/data/instance.py`
+
+**Core Containers:**
+```python
+instance.project       # The current angr.Project
+instance.cfg           # The current CFG model
+instance.cfb           # The current CFBlanket
+instance.simgrs        # Global simulation managers list
+instance.states        # Global states list
+instance.patches       # Patches update notifier
+instance.log           # Saved log messages
+instance.traces        # Global traces list
+instance.current_trace # Currently selected trace
+```
+
+**Example - Accessing Instance Data:**
+```python
+# Get the current project
+project = instance.project.am_obj
+
+# Get the knowledge base
+kb = instance.kb
+
+# Access the CFG
+if not instance.cfg.am_none:
+    cfg = instance.cfg.am_obj
+```
+
+## Component Relationships
+
+The three core components form a hierarchy:
+
+```
+MainWindow
+└── workspace (attribute)
+    └── main_instance (attribute)
+```
+
+### Accessing Components
+
+<CodeGroup>
+```python From MainWindow
+workspace = main_window.workspace
+instance = main_window.workspace.main_instance
+```
+
+```python From Workspace
+instance = workspace.main_instance
+main_window = workspace.main_window
+```
+
+```python Using GlobalInfo
+from angrmanagement.logic import GlobalInfo
+
+# GlobalInfo contains a reference to main_window
+main_window = GlobalInfo.main_window
+workspace = GlobalInfo.main_window.workspace
+```
+</CodeGroup>
+
+## ObjectContainer Pattern
+
+angr Management uses an `ObjectContainer` pattern for reactive data management. Containers emit events when their values change, allowing UI components to stay synchronized.
+
+**Location:** `angrmanagement/data/object_container.py`
+
+**Usage:**
+```python
+# Subscribe to container changes
+instance.project.am_subscribe(callback_function)
+
+# Set a new value (triggers callbacks)
+instance.project.am_obj = new_project
+
+# Manually trigger event
+instance.project.am_event()
+
+# Check if container is empty
+if instance.project.am_none:
+    print("No project loaded")
+```
+
+## Manager Components
+
+### JobManager
+
+Manages background jobs and long-running analyses.
+
+**Location:** `angrmanagement/logic/jobmanager.py`
+
+```python
+# Add a job
+workspace.job_manager.add_job(job)
+
+# Wait for all jobs to complete
+workspace.job_manager.join_all_jobs()
+```
+
+### ViewManager
+
+Manages all views and their dock widgets.
+
+**Location:** `angrmanagement/ui/view_manager.py`
+
+```python
+# Access all views
+for view in workspace.view_manager.views:
+    print(view.__class__.__name__)
+
+# Get view to dock mapping
+dock = workspace.view_manager.view_to_dock.get(view)
+```
+
+### AnalysisManager
+
+Coordinates analysis operations like CFG generation, variable recovery, and decompilation.
+
+**Location:** `angrmanagement/logic/analysis_manager.py`
+
+### CommandManager
+
+Manages registered commands for the command palette.
+
+**Location:** `angrmanagement/logic/commands.py`
+
+### PluginManager
+
+Handles plugin loading and lifecycle.
+
+**Location:** `angrmanagement/plugins/plugin_manager.py`
+
+## Boot Process
+
+The application boot process is defined in `angrmanagement/__init__.py:17`:
+
+```python
+from angrmanagement import boot
+
+# Boot with optional project
+workspace = boot(project=None, block=False)
+
+# Boot and block (for standalone usage)
+boot(project=angr_project, block=True)
+```
+
+**Boot Sequence:**
+1. Initialize Qt Application
+2. Load configuration from `Conf.attempt_importing_initial_config()`
+3. Set up fonts and theme
+4. Create `MainWindow` instance
+5. Initialize `GlobalInfo` references
+6. Load project if provided
+7. Show welcome dialog or start event loop
+
+## Key Paths
+
+| Component | Path |
+|-----------|------|
+| MainWindow | `angrmanagement/ui/main_window.py` |
+| Workspace | `angrmanagement/ui/workspace.py` |
+| Instance | `angrmanagement/data/instance.py` |
+| GlobalInfo | `angrmanagement/logic/__init__.py` |
+| ObjectContainer | `angrmanagement/data/object_container.py` |
+| Boot function | `angrmanagement/__init__.py` |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Setup Development Environment" icon="code" href="/development/setup">
+    Get your development environment ready
+  </Card>
+  <Card title="Contributing Guidelines" icon="hands-helping" href="/development/contributing">
+    Learn how to contribute to angr Management
+  </Card>
+</CardGroup>

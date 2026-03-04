@@ -1,0 +1,472 @@
+---
+title: Workspace
+description: The angr management workspace API for managing views, instances, and analysis
+---
+
+## Workspace
+
+The `Workspace` class implements the angr management workspace, providing access to views, plugins, analysis, and job management.
+
+### Constructor
+
+```python
+Workspace(main_window: MainWindow)
+```
+
+<ParamField path="main_window" type="MainWindow" required>
+  The main window instance that contains this workspace
+</ParamField>
+
+### Properties
+
+<ResponseField name="main_instance" type="Instance">
+  The main Instance object containing the angr project and analysis data
+</ResponseField>
+
+<ResponseField name="job_manager" type="JobManager">
+  Manager for background jobs and tasks
+</ResponseField>
+
+<ResponseField name="command_manager" type="CommandManager">
+  Manager for command execution and history
+</ResponseField>
+
+<ResponseField name="view_manager" type="ViewManager">
+  Manager for all workspace views
+</ResponseField>
+
+<ResponseField name="plugins" type="PluginManager">
+  Manager for loaded plugins
+</ResponseField>
+
+<ResponseField name="analysis_manager" type="AnalysisManager">
+  Manager for running analyses (CFG, decompilation, etc.)
+</ResponseField>
+
+### View Management
+
+#### add_view
+
+```python
+add_view(view: BaseView) -> None
+```
+
+Add a view to the workspace.
+
+<ParamField path="view" type="BaseView" required>
+  The view to add to the workspace
+</ParamField>
+
+#### remove_view
+
+```python
+remove_view(view: BaseView) -> None
+```
+
+Remove a view from the workspace.
+
+<ParamField path="view" type="BaseView" required>
+  The view to remove from the workspace
+</ParamField>
+
+#### raise_view
+
+```python
+raise_view(view: BaseView) -> None
+```
+
+Bring a view to the front and give it focus.
+
+<ParamField path="view" type="BaseView" required>
+  The view to raise
+</ParamField>
+
+#### reload
+
+```python
+reload(categories: list[str] | None = None) -> None
+```
+
+Ask all or specified views to reload the underlying data and regenerate the UI. This is usually expensive.
+
+<ParamField path="categories" type="list[str]">
+  List of view categories to reload. If None, reloads all views.
+</ParamField>
+
+#### refresh
+
+```python
+refresh(categories: list[str] | None = None) -> None
+```
+
+Ask all or specified views to refresh based on changes in the underlying data. This is fast and may be called frequently.
+
+<ParamField path="categories" type="list[str]">
+  List of view categories to refresh. If None, refreshes all views.
+</ParamField>
+
+### Navigation
+
+#### jump_to
+
+```python
+jump_to(addr: int, view=None, use_animation: bool = False) -> None
+```
+
+Jump to a specific address in a disassembly view.
+
+<ParamField path="addr" type="int" required>
+  The address to jump to
+</ParamField>
+
+<ParamField path="view" type="BaseView">
+  The view to use. If None or not a disassembly view, uses or creates a disassembly view.
+</ParamField>
+
+<ParamField path="use_animation" type="bool" default="False">
+  Whether to use animation when jumping
+</ParamField>
+
+#### viz
+
+```python
+viz(obj: int | str | Function) -> None
+```
+
+Visualize the given object by jumping to it in the disassembly view.
+
+<ParamField path="obj" type="int | str | Function" required>
+  - For integers: jump to that address
+  - For strings: look up the symbol and jump to it
+  - For Function objects: jump to the function address
+</ParamField>
+
+### Breakpoints
+
+#### add_breakpoint
+
+```python
+add_breakpoint(obj: str | int, type_: str | None = None, size: int | None = None) -> None
+```
+
+Add a breakpoint at the specified location.
+
+<ParamField path="obj" type="str | int" required>
+  Address (int) or symbol name (str) for the breakpoint
+</ParamField>
+
+<ParamField path="type_" type="str">
+  Breakpoint type: "execute", "write", or "read". Auto-detected based on symbol type if not provided.
+</ParamField>
+
+<ParamField path="size" type="int">
+  Size of the breakpoint in bytes. Defaults to 1 or symbol size.
+</ParamField>
+
+#### toggle_exec_breakpoint
+
+```python
+toggle_exec_breakpoint() -> None
+```
+
+Toggle execution breakpoint at currently selected instruction(s) in disassembly view.
+
+### Analysis
+
+#### run_analysis
+
+```python
+run_analysis() -> None
+```
+
+Run analyses on the current project. Shows analysis options dialog if running with GUI.
+
+#### decompile_current_function
+
+```python
+decompile_current_function() -> None
+```
+
+Decompile the currently selected function.
+
+#### decompile_function
+
+```python
+decompile_function(func: Function, curr_ins=None, view=None) -> None
+```
+
+Decompile a specific function and switch to decompiled view.
+
+<ParamField path="func" type="Function" required>
+  The function to decompile
+</ParamField>
+
+<ParamField path="curr_ins" type="int">
+  The instruction address to focus on in the decompiled view
+</ParamField>
+
+<ParamField path="view" type="CodeView">
+  The code view to use. If None, creates or uses existing pseudocode view.
+</ParamField>
+
+### LLM Features
+
+#### llm_refine_all
+
+```python
+llm_refine_all() -> None
+```
+
+Run LLM refinement on the currently decompiled function (all aspects).
+
+#### llm_suggest_variable_names
+
+```python
+llm_suggest_variable_names() -> None
+```
+
+Use LLM to suggest better variable names for the current function.
+
+#### llm_suggest_function_name
+
+```python
+llm_suggest_function_name() -> None
+```
+
+Use LLM to suggest a better function name.
+
+#### llm_suggest_variable_types
+
+```python
+llm_suggest_variable_types() -> None
+```
+
+Use LLM to suggest variable types for the current function.
+
+#### llm_summarize_function
+
+```python
+llm_summarize_function() -> None
+```
+
+Use LLM to generate a summary comment for the current function.
+
+### Patching
+
+#### patch
+
+```python
+patch(addr: int, asm: str, pad: bool = True) -> None
+```
+
+Patch an instruction at the given address with new assembly code.
+
+<ParamField path="addr" type="int" required>
+  Address to patch
+</ParamField>
+
+<ParamField path="asm" type="str" required>
+  Assembly code to assemble and patch in
+</ParamField>
+
+<ParamField path="pad" type="bool" default="True">
+  Whether to pad with NOPs to maintain instruction size
+</ParamField>
+
+#### set_comment
+
+```python
+set_comment(addr: int, comment_text: str) -> None
+```
+
+Set a comment at the specified address.
+
+<ParamField path="addr" type="int" required>
+  Address to set comment at
+</ParamField>
+
+<ParamField path="comment_text" type="str" required>
+  The comment text
+</ParamField>
+
+### Code Definition
+
+#### define_code
+
+```python
+define_code(addr: int) -> None
+```
+
+Define an address as code and regenerate CFG.
+
+<ParamField path="addr" type="int" required>
+  Address to define as code
+</ParamField>
+
+#### undefine_code
+
+```python
+undefine_code(addr: int) -> None
+```
+
+Undefine an address as code and mark it as data.
+
+<ParamField path="addr" type="int" required>
+  Address to undefine
+</ParamField>
+
+### View Creation
+
+#### new_disassembly_view
+
+```python
+new_disassembly_view() -> DisassemblyView
+```
+
+Create and add a new disassembly view to the workspace.
+
+<ResponseField name="return" type="DisassemblyView">
+  The newly created disassembly view
+</ResponseField>
+
+#### show_linear_disassembly_view
+
+```python
+show_linear_disassembly_view() -> None
+```
+
+Show or create a disassembly view in linear mode.
+
+#### show_graph_disassembly_view
+
+```python
+show_graph_disassembly_view() -> None
+```
+
+Show or create a disassembly view in graph mode.
+
+#### show_pseudocode_view
+
+```python
+show_pseudocode_view() -> None
+```
+
+Show or create the pseudocode/decompiler view.
+
+#### show_hex_view
+
+```python
+show_hex_view() -> None
+```
+
+Show or create the hex editor view.
+
+#### show_functions_view
+
+```python
+show_functions_view() -> None
+```
+
+Show or create the functions list view.
+
+#### show_console_view
+
+```python
+show_console_view() -> None
+```
+
+Show or create the interactive Python console view.
+
+### Debugging
+
+#### step_forward
+
+```python
+step_forward(until_addr: int | None = None) -> None
+```
+
+Step forward in the debugger.
+
+<ParamField path="until_addr" type="int">
+  Step until reaching this address
+</ParamField>
+
+#### continue_forward
+
+```python
+continue_forward() -> None
+```
+
+Continue execution in the debugger.
+
+#### create_simulation_manager
+
+```python
+create_simulation_manager(state, state_name: str, view=None) -> None
+```
+
+Create a simulation manager from a state.
+
+<ParamField path="state" type="SimState" required>
+  The initial state for the simulation manager
+</ParamField>
+
+<ParamField path="state_name" type="str" required>
+  Name for the state
+</ParamField>
+
+<ParamField path="view" type="SymexecView">
+  The symbolic execution view to use
+</ParamField>
+
+### Logging
+
+#### log
+
+```python
+log(msg: str | BaseException) -> None
+```
+
+Log a message to the console view.
+
+<ParamField path="msg" type="str | BaseException" required>
+  Message or exception to log
+</ParamField>
+
+### Traces
+
+#### load_trace_from_path
+
+```python
+load_trace_from_path(path: str) -> None
+```
+
+Load a bintrace trace from the specified path.
+
+<ParamField path="path" type="str" required>
+  Path to the trace file
+</ParamField>
+
+#### set_current_trace
+
+```python
+set_current_trace(trace: Trace | None) -> None
+```
+
+Set the currently active trace.
+
+<ParamField path="trace" type="Trace | None" required>
+  The trace to set as current, or None to clear
+</ParamField>
+
+#### remove_trace
+
+```python
+remove_trace(trace: Trace) -> None
+```
+
+Remove a trace from the workspace.
+
+<ParamField path="trace" type="Trace" required>
+  The trace to remove
+</ParamField>

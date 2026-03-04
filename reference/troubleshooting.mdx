@@ -1,0 +1,299 @@
+---
+title: Troubleshooting
+description: Common issues and solutions for angr Management
+---
+
+This guide covers common issues you might encounter while using angr Management and their solutions.
+
+## Installation Issues
+
+### PySide6 Installation Failures
+
+**Problem:** Installation fails with errors related to PySide6 or Qt.
+
+**Solution:**
+
+1. Make sure you have Python 3.10 or later:
+   ```bash
+   python --version
+   ```
+
+2. Try installing PySide6 separately first:
+   ```bash
+   pip install PySide6-Essentials>=6.4.2
+   ```
+
+3. On some systems, you may need system dependencies:
+   - **Ubuntu/Debian:**
+     ```bash
+     sudo apt-get install python3-dev libxcb-xinerama0
+     ```
+   - **macOS:** Ensure Xcode command line tools are installed:
+     ```bash
+     xcode-select --install
+     ```
+
+### Version Compatibility Issues
+
+**Problem:** angr Management fails to start with import errors or version conflicts.
+
+**Solution:**
+
+1. Ensure all angr components are on the same version:
+   ```bash
+   pip install --upgrade angr angr-management
+   ```
+
+2. Use a virtual environment to avoid conflicts:
+   ```bash
+   python -m venv angr-env
+   source angr-env/bin/activate  # On Windows: angr-env\Scripts\activate
+   pip install angr-management
+   ```
+
+3. If using development versions, make sure angr, cle, and angr-management are all on matching dev versions.
+
+## Runtime Issues
+
+### Application Won't Start
+
+**Problem:** angr Management crashes or won't start.
+
+**Solution:**
+
+1. Check for error messages in the terminal:
+   ```bash
+   python -m angrmanagement
+   ```
+
+2. Clear the configuration cache:
+   ```bash
+   rm -rf ~/.config/angr-management/
+   ```
+
+3. Try starting with a fresh configuration:
+   ```bash
+   python -m angrmanagement --help
+   ```
+
+4. Check your Python environment has all required dependencies:
+   ```bash
+   pip check
+   ```
+
+### High Memory Usage
+
+**Problem:** angr Management consumes too much memory when analyzing large binaries.
+
+**Solution:**
+
+1. Limit the CFG generation scope in Analysis Options (F4)
+2. Use targeted analysis instead of full-binary analysis
+3. Disable automatic CFG generation in Preferences
+4. Close unused views and tabs
+5. Consider analyzing specific functions rather than the entire binary
+6. Use the angr database format (.adb) to save and reload analysis state
+
+### Slow Decompilation
+
+**Problem:** Decompilation takes a very long time or appears to hang.
+
+**Solution:**
+
+1. Check the Jobs view to see if decompilation is actually running
+2. Interrupt the job with `Ctrl+I` if it's stuck
+3. Try decompiling with different optimization settings:
+   - Open Preferences (`Ctrl+Comma`)
+   - Adjust decompilation options
+4. Some complex functions may require significant time - be patient
+5. Check the Log view for any error messages
+
+## Analysis Issues
+
+### CFG Generation Fails
+
+**Problem:** Control Flow Graph generation fails or produces incomplete results.
+
+**Solution:**
+
+1. Try running CFG with different options (F4):
+   - Enable/disable "Normalize" option
+   - Adjust the "CFG Recovery" settings
+2. Check if the binary is packed or obfuscated
+3. Try loading with different backend options
+4. Check the Log view for specific error messages
+
+### Decompilation Shows Incorrect Code
+
+**Problem:** Decompiled code looks wrong or doesn't make sense.
+
+**Solution:**
+
+1. Verify the function boundaries are correct
+2. Check if variable types are properly recovered:
+   - Right-click variables and use "Retype" (Y)
+   - Use AI-assisted variable typing if available
+3. Try different decompilation optimization levels in Preferences
+4. Some binary obfuscation techniques can confuse the decompiler
+5. Use the disassembly view alongside pseudocode for verification
+
+### Missing Function Names
+
+**Problem:** Functions show as `sub_XXXXX` instead of meaningful names.
+
+**Solution:**
+
+1. Load debugging symbols if available
+2. Use FLIRT signatures for library function recognition:
+   - Signatures are loaded automatically on startup
+   - Check the Log view for FLIRT signature loading messages
+3. Manually rename functions (N key in disassembly view)
+4. Try AI-assisted function naming if configured
+5. Load additional symbol sources through the File menu
+
+## UI Issues
+
+### Graph View Not Rendering
+
+**Problem:** Graph disassembly shows blank or doesn't render properly.
+
+**Solution:**
+
+1. Try switching to linear view (Tab) and back
+2. Close and reopen the view
+3. Check if the function has a valid CFG
+4. Try different graph layout settings in Preferences
+5. Update your graphics drivers
+
+### Font Too Small/Large
+
+**Problem:** Text in views is hard to read.
+
+**Solution:**
+
+1. In pseudocode view, use `Ctrl+=` to zoom in or `Ctrl+-` to zoom out
+2. Adjust global font settings in Preferences (`Ctrl+Comma`)
+3. Check your system's display scaling settings
+
+### Views Not Docking Properly
+
+**Problem:** Windows won't dock or dock in unexpected locations.
+
+**Solution:**
+
+1. Reset the window layout:
+   - Close all extra views
+   - Restart angr Management
+2. Try dragging views by their title bar to different dock areas
+3. Delete the layout configuration:
+   ```bash
+   rm ~/.config/angr-management/layout.conf
+   ```
+
+## Binary Loading Issues
+
+### Binary Won't Load
+
+**Problem:** angr Management fails to load a binary file.
+
+**Solution:**
+
+1. Check the file format is supported (PE, ELF, Mach-O, etc.)
+2. Verify the file isn't corrupted:
+   ```bash
+   file your_binary
+   ```
+3. Try loading with custom options:
+   - Right-click and use "Load Options"
+   - Adjust architecture or base address if needed
+4. Check the Log view for specific loader errors
+5. Some packed binaries may need unpacking first
+
+### Shared Libraries Not Found
+
+**Problem:** Binary loads but shared libraries are missing.
+
+**Solution:**
+
+1. angr Management will try to find libraries automatically
+2. Manually specify library paths in load options
+3. Use the "LD_LIBRARY_PATH" option in load dialog
+4. Check if you need to provide system libraries from the target platform
+
+## Debugging Issues
+
+### Breakpoints Not Working
+
+**Problem:** Breakpoints don't trigger during symbolic execution.
+
+**Solution:**
+
+1. Verify symbolic execution is actually running (check Jobs view)
+2. Ensure breakpoint is set at a reachable address
+3. Check the execution path constraints in the States view
+4. Review the Symbolic Execution settings
+
+### Symbolic Execution Hangs
+
+**Problem:** Symbolic execution runs indefinitely without results.
+
+**Solution:**
+
+1. Interrupt with `Ctrl+I`
+2. Set more specific constraints:
+   - Limit the number of states
+   - Set find/avoid addresses
+3. Use targeted symbolic execution rather than full-binary execution
+4. Check for path explosion - consider using veritesting
+
+## Performance Optimization
+
+### General Performance Tips
+
+1. **Use Incremental Analysis:**
+   - Save your work frequently with `Ctrl+S`
+   - Load from .adb files instead of re-analyzing
+
+2. **Disable Unused Features:**
+   - Turn off automatic decompilation
+   - Disable AI features if not needed
+   - Close views you're not using
+
+3. **Adjust Analysis Scope:**
+   - Analyze specific functions instead of entire binaries
+   - Use targeted CFG recovery
+
+4. **System Resources:**
+   - Ensure you have sufficient RAM (8GB minimum, 16GB+ recommended)
+   - Close other resource-intensive applications
+
+## Getting Help
+
+If you're still experiencing issues:
+
+1. **Check the Log View:**
+   - View → Log to see detailed error messages
+   - Look for Python tracebacks or warning messages
+
+2. **Enable Debug Logging:**
+   - Add logging configuration in Preferences
+   - Check terminal output for additional details
+
+3. **Community Support:**
+   - GitHub Issues: https://github.com/angr/angr-management/issues
+   - angr Slack: Get an invite at https://angr.io
+   - Documentation: https://docs.angr.io
+
+4. **Report Bugs:**
+   - Include your angr Management version
+   - Provide steps to reproduce
+   - Include relevant log output
+   - Describe your environment (OS, Python version)
+
+## Known Limitations
+
+- Some heavily obfuscated binaries may not decompile correctly
+- Very large binaries (>100MB) may have performance issues
+- Symbolic execution has inherent path explosion problems
+- Some architectures have better support than others (x86/x64 are best supported)
+- AI features require appropriate API keys and model access

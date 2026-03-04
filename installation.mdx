@@ -1,0 +1,340 @@
+---
+title: Installation
+description: Install angr Management using pre-built binaries, PyPI, or from source
+---
+
+## Prerequisites
+
+angr Management requires:
+
+- **Python**: Version 3.10 or higher
+- **Operating System**: Windows, macOS, or Linux
+- **Display**: Graphical environment (X11, Wayland, or native)
+
+<Warning>
+  Pre-built Windows executables are currently unsigned. You may need to bypass SmartScreen warnings when running for the first time.
+</Warning>
+
+## Installation Methods
+
+Choose the installation method that best fits your needs:
+
+<Tabs>
+  <Tab title="Portable Executable">
+    ### Pre-built Executable (Recommended for Quick Start)
+
+    The easiest way to run angr Management is using a portable, pre-built executable:
+
+    <Steps>
+      <Step title="Download">
+        Get the latest release from the [GitHub Releases page](https://github.com/angr/angr-management/releases)
+        
+        Choose the appropriate build for your platform:
+        - Windows: `angr-management-win64.zip`
+        - macOS: `angr-management-macos.zip`
+        - Linux: `angr-management-linux.tar.gz`
+      </Step>
+
+      <Step title="Extract">
+        Extract the downloaded archive to any location:
+        
+        ```bash Linux/macOS
+        tar -xzf angr-management-linux.tar.gz
+        cd angr-management
+        ```
+        
+        ```powershell Windows
+        Expand-Archive angr-management-win64.zip
+        cd angr-management-win64
+        ```
+      </Step>
+
+      <Step title="Run">
+        Launch the executable directly:
+        
+        ```bash Linux/macOS
+        ./angr-management
+        ```
+        
+        ```powershell Windows
+        .\angr-management.exe
+        ```
+      </Step>
+    </Steps>
+
+    <Note>
+      Portable builds can run from any location without installation. They include all dependencies bundled.
+    </Note>
+  </Tab>
+
+  <Tab title="PyPI (pip)">
+    ### Install from PyPI
+
+    Install angr Management using pip for system-wide or virtual environment installation:
+
+    <Steps>
+      <Step title="Create Virtual Environment (Recommended)">
+        ```bash
+        python -m venv angr-env
+        source angr-env/bin/activate  # On Windows: angr-env\Scripts\activate
+        ```
+      </Step>
+
+      <Step title="Install via pip">
+        ```bash
+        pip install angr-management
+        ```
+        
+        This will install angr Management and all its dependencies:
+        - `angr[angrDB]` - The angr binary analysis framework
+        - `PySide6-Essentials` - Qt6 GUI framework
+        - `cle` - Binary loader
+        - `binsync` - Collaboration support
+        - And more...
+      </Step>
+
+      <Step title="Verify Installation">
+        ```bash
+        angr-management --version
+        ```
+        
+        Expected output:
+        ```
+        angr-management 9.2.205.dev0
+        ```
+      </Step>
+    </Steps>
+
+    ### Running After Installation
+
+    Once installed, you can launch angr Management using either command:
+
+    ```bash
+    angr-management
+    # or the shorter alias
+    am
+    ```
+
+    <Note>
+      The `am` command is a convenient shortcut defined in the package's entry points.
+    </Note>
+  </Tab>
+
+  <Tab title="uv Package Manager">
+    ### Install with uv
+
+    If you're using the modern [uv package manager](https://docs.astral.sh/uv/), you can install angr Management as a tool:
+
+    ```bash
+    uv tool install angr-management
+    ```
+
+    This creates an isolated environment and makes the `angr-management` and `am` commands available globally.
+
+    ### Running
+
+    ```bash
+    angr-management
+    # or
+    am
+    ```
+
+    ### Benefits of uv
+
+    - Faster installation times
+    - Better dependency resolution
+    - Isolated tool environments
+    - No need to manage virtual environments manually
+  </Tab>
+
+  <Tab title="Development Install">
+    ### Development Installation
+
+    For contributing to angr Management or using the latest development version:
+
+    <Steps>
+      <Step title="Clone angr-dev">
+        The recommended way is using [angr-dev](https://github.com/angr/angr-dev):
+        
+        ```bash
+        git clone https://github.com/angr/angr-dev
+        cd angr-dev
+        ```
+      </Step>
+
+      <Step title="Run Setup Script">
+        ```bash Linux/macOS
+        ./setup.sh
+        ```
+        
+        ```powershell Windows
+        .\setup.bat
+        ```
+        
+        This sets up the entire angr suite including angr Management in the `angr-management` directory.
+      </Step>
+
+      <Step title="Install FLIRT Signatures (Optional)">
+        For function signature detection:
+        
+        ```bash
+        cd angr-management
+        git clone --recurse-submodules https://github.com/angr/angr-management
+        ```
+        
+        This clones the `flirt_signatures` submodule.
+      </Step>
+
+      <Step title="Run from Source">
+        ```bash
+        cd angr-management
+        python start.py
+        # or
+        angr-management
+        ```
+      </Step>
+    </Steps>
+
+    <Warning>
+      If you encounter dependency issues after updating, re-run the setup script to ensure all dependencies are current.
+    </Warning>
+
+    ### Development Dependencies
+
+    Install additional development tools:
+
+    ```bash
+    pip install -e .[dev]
+    ```
+
+    This includes:
+    - Testing tools (pytest, coverage)
+    - Documentation tools (Sphinx, furo)
+    - PyInstaller for building executables
+  </Tab>
+</Tabs>
+
+## Configuration
+
+After installation, angr Management stores configuration files in platform-specific locations:
+
+<CodeGroup>
+```bash Linux
+~/.config/angr-management/config.toml
+```
+
+```bash macOS
+~/Library/Preferences/angr-management/config.toml
+```
+
+```powershell Windows
+~\AppData\Local\angr-management\config.toml
+```
+</CodeGroup>
+
+The configuration file is automatically created on first run with default settings.
+
+## Optional Components
+
+### BinTrace Support
+
+For advanced dynamic tracing capabilities:
+
+```bash
+pip install angr-management[bintrace]
+```
+
+### Platform-Specific Dependencies
+
+Some features require platform-specific packages:
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    pip install pyobjc-framework-Cocoa
+    ```
+    
+    Required for proper macOS integration (automatically installed on macOS).
+  </Tab>
+  
+  <Tab title="Linux (non-ARM)">
+    ```bash
+    pip install keystone-engine
+    ```
+    
+    Used for assembly code generation in patches.
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Qt Platform Plugin Error">
+    If you see `Could not load the Qt platform plugin`:
+    
+    ```bash
+    # Install Qt dependencies on Linux
+    sudo apt-get install libxcb-xinerama0 libxcb-cursor0
+    
+    # Or on Fedora/RHEL
+    sudo dnf install xcb-util-cursor
+    ```
+  </Accordion>
+
+  <Accordion title="Import Errors After Installation">
+    Ensure you're using Python 3.10 or higher:
+    
+    ```bash
+    python --version
+    ```
+    
+    If using a virtual environment, make sure it's activated.
+  </Accordion>
+
+  <Accordion title="PySide6 Version Conflicts">
+    angr Management requires PySide6 >= 6.4.2 and excludes version 6.7.0:
+    
+    ```bash
+    pip install "PySide6-Essentials>=6.4.2,!=6.7.0" --force-reinstall
+    ```
+  </Accordion>
+
+  <Accordion title="Performance Issues">
+    For better performance with large binaries:
+    
+    1. Increase available memory
+    2. Consider using the pre-built executable (optimized builds)
+    3. Enable selective analysis instead of full binary analysis
+  </Accordion>
+</AccordionGroup>
+
+## Verifying Installation
+
+Test your installation by running:
+
+```bash
+# Check version
+angr-management --version
+
+# View help
+angr-management --help
+
+# Launch GUI
+angr-management
+```
+
+<Check>
+  If the GUI launches successfully, your installation is complete!
+</Check>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Learn how to load and analyze your first binary
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/configuration">
+    Customize angr Management to your preferences
+  </Card>
+</CardGroup>

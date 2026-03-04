@@ -1,0 +1,457 @@
+---
+title: Event System
+description: Understanding the ObjectContainer event system for plugin development
+---
+
+## Overview
+
+angr Management uses a publish-subscribe (pub-sub) model implemented through the `ObjectContainer` class to synchronize changing object references and broadcast events throughout the application. This allows plugins and UI components to react to changes in the application state.
+
+## ObjectContainer
+
+The `ObjectContainer` is a proxy wrapper around objects that adds event functionality. It allows you to:
+
+1. Subscribe to changes via callbacks
+2. Access the wrapped object transparently
+3. Update object references while maintaining the same container instance
+4. Check for null/None values safely
+
+### Basic Usage
+
+You can use an `ObjectContainer` almost exactly like the object it contains:
+
+```python
+# Access properties and methods
+project = instance.project
+factory = project.factory  # Transparently accesses project.am_obj.factory
+kb = project.kb
+
+# Check if container is empty
+if instance.project.am_none:
+    print("No project loaded")
+else:
+    print(f"Project loaded: {instance.project.filename}")
+```
+
+<Note>
+  Use `container.am_none` instead of `container is None` to check if the container holds a null value.
+</Note>
+
+### Accessing the Wrapped Object
+
+While most operations work transparently, you can explicitly access the wrapped object:
+
+```python
+# Get the actual object
+actual_project = instance.project.am_obj
+
+# Set a new object
+instance.project.am_obj = new_project
+instance.project.am_event()  # Notify subscribers
+```
+
+## Subscribe and Event Pattern
+
+### Subscribing to Events
+
+Subscribe to container changes by providing a callback function:
+
+```python
+def on_project_changed(**kwargs):
+    """Called when the project container is updated."""
+    if not instance.project.am_none:
+        project = instance.project.am_obj
+        print(f"New project: {project.filename}")
+
+# Subscribe to changes
+instance.project.am_subscribe(on_project_changed)
+```
+
+<Warning>
+  Always accept `**kwargs` in your callback functions to handle unknown parameters passed via events.
+</Warning>
+
+### Triggering Events
+
+Events are **never** automatically triggered. You must explicitly call `am_event()` to notify subscribers:
+
+```python
+# Update the container
+instance.project.am_obj = new_project
+
+# Notify all subscribers
+instance.project.am_event()
+
+# Pass custom arguments to callbacks
+instance.project.am_event(reason="user_action", source="file_menu")
+```
+
+### Event Arguments
+
+You can pass arbitrary keyword arguments through events:
+
+```python
+def on_data_changed(source=None, reason=None, **kwargs):
+    """Handle data changes with context."""
+    print(f"Data changed: source={source}, reason={reason}")
+
+container.am_subscribe(on_data_changed)
+
+# Trigger with custom arguments
+container.am_event(source="plugin", reason="analysis_complete")
+```
+
+This is useful for:
+- Preventing feedback loops
+- Providing context about the change
+- Implementing conditional logic
+
+### Preventing Feedback Loops
+
+Use custom event arguments to prevent infinite recursion:
+
+```python
+def on_selection_changed(from_callback=False, **kwargs):
+    """Handle selection changes."""
+    if from_callback:
+        return  # Don't recurse
+    
+    # Update related state
+    update_related_selection()
+    
+    # Broadcast without recursing
+    container.am_event(from_callback=True)
+```
+
+### Unsubscribing
+
+Remember to unsubscribe when cleaning up:
+
+```python
+class MyPlugin(BasePlugin):
+    def __init__(self, workspace):
+        super().__init__(workspace)
+        self._callback = self._on_project_changed
+        workspace.main_instance.project.am_subscribe(self._callback)
+    
+    def teardown(self):
+        self.workspace.main_instance.project.am_unsubscribe(self._callback)
+    
+    def _on_project_changed(self, **kwargs):
+        # Handle project changes
+        pass
+```
+
+## GUI Thread Events
+
+For thread-safe event notifications, use `am_event_gui()`:
+
+```python
+# From a background thread
+def background_work():
+    # Do work...
+    result = compute_something()
+    
+    # Update container from GUI thread
+    container.am_obj = result
+    container.am_event_gui()  # Safely triggers callbacks on GUI thread
+```
+
+## Nested Containers
+
+ObjectContainers can nest, and events propagate upward:
+
+```python
+# Inner container
+state_container = ObjectContainer(state, "current_state")
+
+# Outer container contains the inner container
+states_list = ObjectContainer([state_container], "states")
+
+# Events from inner container propagate to outer
+state_container.am_event()  # Subscribers to states_list also notified
+```
+
+This pattern is used in angr Management for:
+- Lists of states, where each state is wrapped in a container
+- The "current state" container points to one of these inner containers
+- UI elements can subscribe to either specific states or the current state
+
+## Standard Containers
+
+The `Instance` class provides many standard containers. Here are the most commonly used:
+
+### Project and Analysis
+
+```python
+# The current angr project
+instance.project.am_subscribe(callback)
+
+# Current CFG (Control Flow Graph)
+instance.cfg.am_subscribe(callback)
+
+# Current CFBlanket
+instance.cfb.am_subscribe(callback)
+```
+
+### Execution State
+
+```python
+# List of simulation managers
+instance.simgrs.am_subscribe(callback)
+
+# List of states
+instance.states.am_subscribe(callback)
+
+# Currently selected trace
+instance.current_trace.am_subscribe(callback)
+
+# List of all traces
+instance.traces.am_subscribe(callback)
+```
+
+### UI State
+
+```python
+# Currently focused view state
+instance.active_view_state.am_subscribe(callback)
+```
+
+### Other
+
+```python
+# Patches notification (dummy container)
+instance.patches.am_subscribe(callback)
+
+# Log messages
+instance.log.am_subscribe(callback)
+```
+
+## View-Specific Containers
+
+Views have their own containers for synchronizing local state. Access them through the view's `infodock`:
+
+```python
+# Get disassembly view
+dview = workspace.view_manager.first_view_in_category("disassembly")
+
+# Subscribe to selected instructions
+dview.infodock.selected_insns.am_subscribe(on_selection_changed)
+
+# Current function
+dview.infodock.current_function.am_subscribe(on_function_changed)
+```
+
+## Creating Custom Containers
+
+Plugins can register custom containers:
+
+```python
+class MyPlugin(BasePlugin):
+    def __init__(self, workspace):
+        super().__init__(workspace)
+        
+        # Register a custom container
+        workspace.main_instance.register_container(
+            "my_analysis_results",     # Name
+            lambda: None,               # Default value factory
+            AnalysisResults | None,     # Type hint
+            "Analysis results"          # Description
+        )
+        
+        # Subscribe to your container
+        workspace.main_instance.my_analysis_results.am_subscribe(
+            self._on_results_changed
+        )
+    
+    def run_analysis(self):
+        results = perform_analysis()
+        
+        # Update and notify
+        self.workspace.main_instance.my_analysis_results.am_obj = results
+        self.workspace.main_instance.my_analysis_results.am_event(
+            source="analysis",
+            complete=True
+        )
+    
+    def _on_results_changed(self, source=None, complete=False, **kwargs):
+        if complete:
+            self.display_results()
+```
+
+## Object Reference Mutability
+
+One of the key benefits of ObjectContainer is maintaining stable references:
+
+### Without ObjectContainer
+
+```python
+# Widget stores direct reference
+class MyWidget:
+    def __init__(self, project):
+        self.project = project  # Direct reference
+
+# Later, when new project loads:
+new_project = load_project()
+instance.project = new_project
+
+# Problem: Widget still has old project reference!
+# Old project can't be garbage collected
+# Widget shows stale data
+```
+
+### With ObjectContainer
+
+```python
+# Widget stores container reference
+class MyWidget:
+    def __init__(self, project_container):
+        self.project = project_container  # Container reference
+        project_container.am_subscribe(self.on_project_changed)
+    
+    def on_project_changed(self, **kwargs):
+        # Automatically notified of changes
+        self.update_display()
+
+# Later, when new project loads:
+instance.project.am_obj = new_project
+instance.project.am_event()
+
+# Widget automatically has new project reference!
+# Old project can be garbage collected
+# Widget updates correctly
+```
+
+This follows the **principle of least access**: widgets only need access to the container, not the entire instance.
+
+## Best Practices
+
+### Always Use **kwargs
+
+Callbacks should always accept `**kwargs` to be future-proof:
+
+```python
+# Good
+def on_change(**kwargs):
+    pass
+
+def on_change(source=None, **kwargs):
+    pass
+
+# Bad - will break if new arguments are added
+def on_change():
+    pass
+
+def on_change(source):
+    pass
+```
+
+### Clean Up Subscriptions
+
+Always unsubscribe in `teardown()` to prevent memory leaks:
+
+```python
+def __init__(self, workspace):
+    super().__init__(workspace)
+    workspace.main_instance.project.am_subscribe(self._callback)
+
+def teardown(self):
+    self.workspace.main_instance.project.am_unsubscribe(self._callback)
+```
+
+### Check am_none Before Access
+
+Always check if a container is empty before accessing:
+
+```python
+def on_project_changed(**kwargs):
+    if not instance.project.am_none:
+        # Safe to access
+        project = instance.project.am_obj
+        analyze(project)
+```
+
+### Use Descriptive Event Arguments
+
+Provide context through event arguments:
+
+```python
+container.am_event(
+    source="user_interaction",
+    action="selection_changed",
+    previous_value=old_value
+)
+```
+
+### Thread Safety
+
+Use `am_event_gui()` for cross-thread events:
+
+```python
+import threading
+
+def background_task():
+    result = expensive_computation()
+    
+    # Update from background thread
+    container.am_obj = result
+    container.am_event_gui()  # Thread-safe
+
+thread = threading.Thread(target=background_task)
+thread.start()
+```
+
+## Common Patterns
+
+### Lazy Initialization
+
+```python
+class MyPlugin(BasePlugin):
+    def __init__(self, workspace):
+        super().__init__(workspace)
+        self._data = None
+        workspace.main_instance.project.am_subscribe(self._on_project_changed)
+    
+    def _on_project_changed(self, **kwargs):
+        # Reset on project change
+        self._data = None
+    
+    def get_data(self):
+        if self._data is None:
+            self._data = self._compute_data()
+        return self._data
+```
+
+### Cascading Updates
+
+```python
+def on_cfg_changed(**kwargs):
+    # CFG changed, update dependent analysis
+    if not instance.cfg.am_none:
+        results = analyze_cfg(instance.cfg)
+        
+        # Update results container
+        instance.my_results.am_obj = results
+        instance.my_results.am_event(source="cfg_analysis")
+
+instance.cfg.am_subscribe(on_cfg_changed)
+instance.my_results.am_subscribe(on_results_changed)
+```
+
+### Conditional Event Handling
+
+```python
+def on_state_changed(reason=None, **kwargs):
+    if reason == "user_step":
+        # User manually stepped, update UI
+        update_ui()
+    elif reason == "auto_analysis":
+        # Background analysis, don't interrupt user
+        update_status_only()
+
+instance.states.am_subscribe(on_state_changed)
+
+# Trigger with context
+instance.states.am_event(reason="user_step")
+instance.states.am_event(reason="auto_analysis")
+```

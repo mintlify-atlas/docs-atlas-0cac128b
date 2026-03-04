@@ -1,0 +1,519 @@
+---
+title: Debugging
+description: Debug binaries with breakpoints, stepping, and state inspection
+---
+
+angr Management provides powerful debugging capabilities that combine traditional debugging with symbolic execution, allowing you to analyze both concrete and symbolic program states.
+
+## Debugging Modes
+
+angr Management supports multiple debugging approaches:
+
+<Tabs>
+  <Tab title="Symbolic Execution">
+    **Explore program paths symbolically**
+    
+    - Create symbolic states
+    - Set find/avoid addresses
+    - Explore multiple paths simultaneously
+    - Solve for inputs that reach targets
+    
+    **Best for:** Finding inputs, vulnerability discovery, path exploration
+  </Tab>
+  <Tab title="Trace Replay">
+    **Replay recorded execution traces**
+    
+    - Load bintrace files
+    - Step through recorded execution
+    - Inspect state at each step
+    - Compare different executions
+    
+    **Best for:** Understanding real executions, debugging crashes
+  </Tab>
+  <Tab title="Concrete Execution">
+    **Traditional debugging with concrete values**
+    
+    - Set breakpoints
+    - Step through execution
+    - Inspect registers and memory
+    - Modify state
+    
+    **Best for:** Traditional debugging workflows
+  </Tab>
+</Tabs>
+
+## Breakpoints
+
+### Breakpoint Types
+
+angr Management supports three types of breakpoints:
+
+<CardGroup cols={3}>
+  <Card title="Execution" icon="circle-stop">
+    Break when instruction is executed
+  </Card>
+  <Card title="Read" icon="book-open">
+    Break when memory is read
+  </Card>
+  <Card title="Write" icon="pen">
+    Break when memory is written
+  </Card>
+</CardGroup>
+
+### Setting Breakpoints
+
+<Tabs>
+  <Tab title="In Disassembly">
+    **Quick method:**
+    1. Click on instruction
+    2. Press `F2`
+    3. Breakpoint toggles on/off
+    
+    **Or right-click:**
+    1. Right-click instruction
+    2. Select "Toggle Breakpoint"
+    3. Choose breakpoint type
+  </Tab>
+  <Tab title="In Hex View">
+    1. Right-click on address
+    2. Select "Set Breakpoint"
+    3. Configure type and size
+    4. Click OK
+  </Tab>
+  <Tab title="Breakpoints View">
+    1. Open View → Breakpoints
+    2. Click "New Breakpoint"
+    3. Enter address and configuration
+    4. Click OK
+  </Tab>
+  <Tab title="Via Console">
+    ```python
+    # Execution breakpoint
+    workspace.add_breakpoint(0x401000)
+    
+    # Read breakpoint on global_var (8 bytes)
+    workspace.add_breakpoint('global_var', 'read', 8)
+    
+    # Write breakpoint
+    workspace.add_breakpoint(0x404000, 'write', 4)
+    ```
+  </Tab>
+</Tabs>
+
+### Managing Breakpoints
+
+In the **Breakpoints View** (View → Breakpoints):
+
+<Steps>
+  <Step title="View All">
+    See all breakpoints in a table with type, address, size, and comments
+  </Step>
+  <Step title="Edit">
+    Double-click a breakpoint to modify its properties
+  </Step>
+  <Step title="Delete">
+    Right-click → "Remove breakpoint" or select and press Delete
+  </Step>
+  <Step title="Enable/Disable">
+    Toggle breakpoints without removing them
+  </Step>
+</Steps>
+
+### Breakpoint Visualization
+
+Breakpoints are shown throughout the interface:
+
+- **Disassembly**: Red dot next to instruction
+- **Hex View**: Cyan highlight over address range
+- **Breakpoints View**: Complete list with details
+
+## Execution Control
+
+Control program execution with these commands:
+
+| Action | Shortcut | Description |
+|--------|----------|-------------|
+| **Continue** | `F9` | Run until next breakpoint |
+| **Step Forward** | `F7` | Execute one instruction |
+| **Step Over** | `F8` | Step over function calls |
+| **Run to Cursor** | Right-click → Run to Here | Execute until cursor position |
+
+<Note>
+Execution control is available when a debugger is active (symbolic or trace-based).
+</Note>
+
+## Symbolic Execution
+
+### Creating Symbolic States
+
+<Steps>
+  <Step title="Open Dialog">
+    - Right-click in disassembly → "New State"
+    - Or use View → States
+  </Step>
+  <Step title="Configure State">
+    - Starting address (default: current instruction)
+    - Input configuration (stdin, files, arguments)
+    - Environment variables
+    - Memory initialization
+  </Step>
+  <Step title="Create">
+    Click "Create" to generate the symbolic state
+  </Step>
+  <Step title="Execute">
+    State appears in Symbolic Execution view, ready to explore
+  </Step>
+</Steps>
+
+### Find/Avoid Addresses
+
+Guide symbolic execution to desired locations:
+
+<Tabs>
+  <Tab title="Find Addresses">
+    **Addresses you want to reach:**
+    
+    1. Right-click target instruction
+    2. Select "Set as Find Address"
+    3. Green marker appears
+    4. Symbolic execution prioritizes paths to this address
+    
+    **Programmatic:**
+    ```python
+    workspace.add_find_address(0x401234)
+    ```
+  </Tab>
+  <Tab title="Avoid Addresses">
+    **Addresses to skip:**
+    
+    1. Right-click unwanted instruction
+    2. Select "Set as Avoid Address"
+    3. Red marker appears
+    4. Symbolic execution avoids these paths
+    
+    **Programmatic:**
+    ```python
+    workspace.add_avoid_address(0x401500)
+    ```
+  </Tab>
+</Tabs>
+
+### Symbolic Execution View
+
+The Symbolic Execution view (View → Symbolic Execution) shows:
+
+<AccordionGroup>
+  <Accordion title="Simulation Managers">
+    - Active simulation managers
+    - State organization (active, found, avoided, etc.)
+    - State counts for each category
+  </Accordion>
+  
+  <Accordion title="State Tree">
+    - Hierarchical view of states
+    - Parent-child relationships
+    - State divergence points
+  </Accordion>
+  
+  <Accordion title="Execution Control">
+    - Step states forward
+    - Explore paths
+    - Merge states
+    - Drop unwanted states
+  </Accordion>
+</AccordionGroup>
+
+## State Inspection
+
+### Registers View
+
+View → Registers shows current CPU register values:
+
+<CardGroup cols={2}>
+  <Card title="Display" icon="list">
+    - All architecture registers
+    - Current values (hex and decimal)
+    - Changed values highlighted
+    - Symbolic expressions shown
+  </Card>
+  <Card title="Modification" icon="pen">
+    - Double-click to edit
+    - Set concrete values
+    - View constraints on symbolic values
+  </Card>
+</CardGroup>
+
+### Stack View
+
+View → Stack displays the current stack:
+
+- Stack pointer location
+- Return addresses
+- Local variables
+- Stack frame boundaries
+- Scroll to explore stack
+
+**Features:**
+- Click addresses to navigate
+- Highlight stack frames
+- Show ASCII representation
+- Export stack contents
+
+### Memory Inspection
+
+Use the **Hex View** (View → Hex) to inspect memory:
+
+1. Enter address or symbol name
+2. View bytes and ASCII representation
+3. Edit values directly
+4. See highlighted regions for:
+   - Breakpoints
+   - Patches
+   - Modified data
+
+### Constraint Viewer
+
+For symbolic states, view constraints:
+
+1. Select state in States view
+2. Right-click → "View Constraints"
+3. See all path constraints
+4. Solve for satisfying values
+
+## Trace Debugging
+
+### Loading Traces
+
+<Steps>
+  <Step title="Open Trace">
+    File → Load a new trace
+  </Step>
+  <Step title="Select File">
+    Choose bintrace (.trace) file
+  </Step>
+  <Step title="Create Debugger">
+    angr creates a trace debugger automatically
+  </Step>
+  <Step title="Navigate">
+    Step through the recorded execution
+  </Step>
+</Steps>
+
+### Trace Map View
+
+View → Trace Map shows execution coverage:
+
+<CardGroup cols={2}>
+  <Card title="Visualization" icon="map">
+    - Heat map of executed code
+    - Color intensity shows execution frequency
+    - Identify hot paths and loops
+  </Card>
+  <Card title="Navigation" icon="compass">
+    - Click to jump to code
+    - Zoom and pan
+    - Filter by execution count
+  </Card>
+</CardGroup>
+
+### Comparing Traces
+
+Load multiple traces to compare:
+
+1. Load first trace
+2. Load second trace
+3. Switch between traces in Traces view
+4. Use Trace Map to visualize differences
+
+## Debugging Workflows
+
+### Finding Crash Inputs
+
+<Steps>
+  <Step title="Load Binary">
+    Open the crashing binary
+  </Step>
+  <Step title="Create Symbolic State">
+    Create state with symbolic input at entry point
+  </Step>
+  <Step title="Set Avoid">
+    Mark the crash location as "avoid" address
+  </Step>
+  <Step title="Explore">
+    Run symbolic execution
+  </Step>
+  <Step title="Check States">
+    States that reach "avoided" addresses may trigger crash
+  </Step>
+  <Step title="Get Input">
+    Solve for concrete input values from the state
+  </Step>
+</Steps>
+
+### Analyzing Function Behavior
+
+<Steps>
+  <Step title="Navigate">
+    Jump to function start in disassembly
+  </Step>
+  <Step title="Set Breakpoint">
+    Press F2 on first instruction
+  </Step>
+  <Step title="Create State">
+    Right-click → "New State" with symbolic arguments
+  </Step>
+  <Step title="Set Find">
+    Mark return instruction as "find" address
+  </Step>
+  <Step title="Execute">
+    Step through or continue to see different paths
+  </Step>
+  <Step title="Inspect">
+    Examine return values and constraints
+  </Step>
+</Steps>
+
+### Debugging Patches
+
+<Steps>
+  <Step title="Apply Patch">
+    Modify code in disassembly view
+  </Step>
+  <Step title="Set Breakpoint">
+    Break before patched code
+  </Step>
+  <Step title="Create State">
+    New state at breakpoint
+  </Step>
+  <Step title="Step Through">
+    Single-step through patched code
+  </Step>
+  <Step title="Verify">
+    Check registers and memory for expected behavior
+  </Step>
+</Steps>
+
+## Advanced Debugging
+
+### Hooks
+
+Intercept execution at specific addresses:
+
+<Accordion title="Creating Hooks">
+  1. Right-click instruction → "Hook"
+  2. Enter Python code to execute
+  3. Access state via `state` variable
+  4. Return value controls execution flow
+  
+  **Example:**
+  ```python
+  # Log function calls
+  print(f"Called at {hex(state.addr)}")
+  print(f"First arg: {state.regs.rdi}")
+  ```
+</Accordion>
+
+### Simulation Manager Control
+
+Advanced state management via console:
+
+```python
+# Access simulation manager
+simgr = workspace.main_instance.simgrs[0].am_obj
+
+# Step all active states
+simgr.step()
+
+# Move states between stashes
+simgr.move('active', 'found', lambda s: s.addr == 0x401234)
+
+# Merge states
+simgr.merge()
+
+# Explore with constraints
+simgr.explore(find=0x401234, avoid=[0x401500, 0x401600])
+```
+
+### State Hierarchy
+
+View state relationships:
+
+1. Open States view
+2. See parent-child relationships
+3. Understand where states diverged
+4. Track constraint additions
+
+## Debugging Tips
+
+<CardGroup cols={2}>
+  <Card title="Performance" icon="gauge-high">
+    **Speed up symbolic execution:**
+    - Use concrete values where possible
+    - Set find/avoid addresses early
+    - Limit exploration depth
+    - Drop unreachable states
+    - Enable state merging
+  </Card>
+  <Card title="Accuracy" icon="bullseye">
+    **Improve results:**
+    - Use accurate calling conventions
+    - Define function signatures
+    - Initialize memory correctly
+    - Model library functions
+    - Add constraints based on knowledge
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Breakpoint Not Hit">
+    **Possible causes:**
+    - Code never executes
+    - Wrong address
+    - Breakpoint disabled
+    
+    **Solutions:**
+    - Verify code path in disassembly
+    - Check Breakpoints view for status
+    - Ensure debugger is active
+  </Accordion>
+  
+  <Accordion title="Too Many States">
+    **Symbolic execution explodes:**
+    
+    **Solutions:**
+    - Set find/avoid addresses
+    - Reduce symbolic input size
+    - Use concrete values for some inputs
+    - Enable aggressive state merging
+    - Limit exploration depth
+  </Accordion>
+  
+  <Accordion title="Solver Timeout">
+    **Constraint solving takes too long:**
+    
+    **Solutions:**
+    - Simplify constraints if possible
+    - Reduce symbolic input complexity
+    - Use concrete values where feasible
+    - Increase solver timeout in settings
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Symbolic Execution" icon="route" href="/advanced/symbolic-execution">
+    Deep dive into symbolic execution
+  </Card>
+  <Card title="Patching" icon="wrench" href="/user-guide/patching">
+    Apply patches to fix bugs
+  </Card>
+  <Card title="Scripting" icon="code" href="/advanced/scripting">
+    Automate debugging with scripts
+  </Card>
+  <Card title="Configuration" icon="gear" href="/user-guide/configuration">
+    Configure debugging options
+  </Card>
+</CardGroup>

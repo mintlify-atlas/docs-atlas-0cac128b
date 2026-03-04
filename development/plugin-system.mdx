@@ -1,0 +1,262 @@
+---
+title: Plugin System Overview
+description: Understand how the angr Management plugin system works and how to structure plugins
+---
+
+## Introduction
+
+angr Management has a flexible plugin framework that allows you to extend the UI and functionality of the application. Plugins are Python files containing subclasses of `BasePlugin` that can hook into various aspects of the application.
+
+## Plugin Discovery and Loading
+
+### Plugin Locations
+
+Plugin files are automatically loaded from two locations:
+
+1. The built-in `plugins` module of angr Management
+2. `~/.local/share/angr-management/plugins` (user plugins directory)
+
+These paths are configurable through the program configuration, though this is not currently exposed in the UI.
+
+### Plugin Activation
+
+Plugins can be in two states:
+
+- **Loaded**: The plugin class is discovered and loaded, but not instantiated
+- **Activated**: An instance of the plugin class exists and is actively processing events
+
+You can manage plugin activation through:
+- The `Plugins` menu in the main window
+- Configuration file (`enabled_plugins` setting)
+- Plugin manager UI dialog
+
+## Plugin Structure
+
+### Basic Plugin Template
+
+Here's the minimal structure for a plugin:
+
+```python
+from angrmanagement.plugins import BasePlugin
+
+class MyPlugin(BasePlugin):
+    """Description of what your plugin does."""
+    
+    # Human-readable name displayed in the UI
+    DISPLAY_NAME = "My Plugin"
+    
+    # Whether this plugin requires a workspace (UI mode)
+    REQUIRE_WORKSPACE = True
+    
+    def __init__(self, workspace):
+        super().__init__(workspace)
+        # Initialize your plugin here
+        # - Subscribe to object containers
+        # - Set up internal state
+    
+    def teardown(self):
+        """Clean up when the plugin is deactivated."""
+        # Unsubscribe from containers
+        # Remove UI elements
+        # Clean up resources
+        pass
+```
+
+### Plugin Lifecycle
+
+1. **Discovery**: Plugin manager scans plugin directories for Python files
+2. **Loading**: Plugin classes are imported and verified
+3. **Activation**: Plugin `__init__` is called with the workspace
+4. **Operation**: Plugin methods are called in response to events
+5. **Deactivation**: `teardown()` is called to clean up resources
+
+### Workspace and Instance Access
+
+When a plugin is initialized, it receives a `workspace` parameter:
+
+```python
+def __init__(self, workspace):
+    super().__init__(workspace)
+    self.workspace = workspace  # Access to UI workspace
+    
+    # Access the main instance
+    instance = workspace.main_instance
+    
+    # Access the angr project
+    if not instance.project.am_none:
+        project = instance.project.am_obj
+```
+
+## Plugin Modes
+
+### UI Mode (workspace available)
+
+Most plugins run in UI mode where they have access to the workspace and can:
+- Add menu items and toolbar buttons
+- Modify the disassembly and decompiler views
+- Create custom views and widgets
+- Handle user interactions
+
+### Headless Mode (no workspace)
+
+Plugins with `REQUIRE_WORKSPACE = False` can run in headless mode. This is useful for:
+- URL handlers
+- Background processing
+- Command-line tools
+
+```python
+class HeadlessPlugin(BasePlugin):
+    REQUIRE_WORKSPACE = False
+    
+    def __init__(self, workspace):
+        super().__init__(workspace)
+        # workspace will be None in headless mode
+```
+
+## Container Registration
+
+Plugins can register custom containers to store and synchronize state:
+
+```python
+def __init__(self, workspace):
+    super().__init__(workspace)
+    
+    # Register a custom container
+    workspace.main_instance.register_container(
+        "my_data",           # Container name
+        lambda: None,        # Default value factory
+        MyDataType | None,   # Type annotation
+        "Description"        # Human-readable description
+    )
+    
+    # Subscribe to container changes
+    workspace.main_instance.my_data.am_subscribe(self._on_data_changed)
+
+def _on_data_changed(self, **kwargs):
+    """Called when my_data container is updated."""
+    if not self.workspace.main_instance.my_data.am_none:
+        data = self.workspace.main_instance.my_data.am_obj
+        # Process the new data
+```
+
+## Best Practices
+
+### Initialization
+
+- Keep `__init__` lightweight
+- Set up callbacks and subscriptions
+- Don't perform heavy computation
+- Handle missing dependencies gracefully
+
+```python
+def __init__(self, workspace):
+    super().__init__(workspace)
+    
+    try:
+        import optional_library
+        self.has_library = True
+    except ImportError:
+        self.has_library = False
+        workspace.log("Optional library not available")
+```
+
+### Teardown
+
+- Always implement `teardown()` if you subscribe to containers
+- Remove all UI elements you added
+- Clean up threads and resources
+
+```python
+def teardown(self):
+    # Unsubscribe from containers
+    self.workspace.main_instance.project.am_unsubscribe(self._on_project_changed)
+    
+    # Stop background threads
+    if self.worker_thread:
+        self.worker_thread.stop()
+    
+    # Remove UI elements
+    for widget in self.added_widgets:
+        widget.hide()
+        widget.deleteLater()
+```
+
+### Error Handling
+
+- Always catch and log exceptions in callbacks
+- Don't let errors in your plugin crash the application
+- Use `workspace.log()` to communicate with users
+
+```python
+def some_callback(self, **kwargs):
+    try:
+        # Your logic here
+        pass
+    except Exception as e:
+        self.workspace.log(f"Error in MyPlugin: {e}")
+```
+
+## Plugin Capabilities
+
+Plugins can extend angr Management through:
+
+- **UI Customization**: Add menus, toolbars, status bar widgets
+- **View Instrumentation**: Modify disassembly and code views
+- **Custom Coloring**: Change colors of instructions, blocks, and functions
+- **Event Handling**: Respond to clicks, view changes, and project events
+- **Context Menus**: Add custom menu items to various UI elements
+- **Custom Analysis**: Run analyses and display results
+- **Decompiler Integration**: Add optimization passes, handle variable changes
+- **Persistence**: Store and load plugin data in project files
+
+See the [Plugin API Reference](/development/plugin-api) for detailed information on all available methods and hooks.
+
+## Example: Simple Bookmark Plugin
+
+```python
+from angrmanagement.plugins import BasePlugin
+
+class BookmarkPlugin(BasePlugin):
+    DISPLAY_NAME = "Bookmarks"
+    MENU_BUTTONS = ("Add Bookmark",)
+    
+    def __init__(self, workspace):
+        super().__init__(workspace)
+        
+        # Register a container for bookmarks
+        workspace.main_instance.register_container(
+            "bookmarks",
+            list,
+            list[int],
+            "Bookmarked addresses"
+        )
+    
+    def handle_click_menu(self, idx):
+        """Handle menu button clicks."""
+        if idx == 0:  # Add Bookmark
+            # Get current address from disassembly view
+            view = self.workspace.view_manager.first_view_in_category("disassembly")
+            if view and view.current_function:
+                addr = view.current_function.addr
+                bookmarks = self.workspace.main_instance.bookmarks.am_obj
+                if addr not in bookmarks:
+                    bookmarks.append(addr)
+                    self.workspace.main_instance.bookmarks.am_event()
+                    self.workspace.log(f"Bookmarked 0x{addr:x}")
+    
+    def color_func(self, func):
+        """Color bookmarked functions."""
+        bookmarks = self.workspace.main_instance.bookmarks.am_obj
+        if func.addr in bookmarks:
+            from PySide6.QtGui import QColor
+            return QColor(255, 255, 200)  # Light yellow
+        return None
+```
+
+This example demonstrates:
+- Registering a custom container
+- Adding a menu button
+- Handling menu clicks
+- Accessing views and current state
+- Customizing function colors
+- Using the workspace logger

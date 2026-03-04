@@ -1,0 +1,578 @@
+---
+title: Patching
+description: Modify and patch binary code in angr Management
+---
+
+angr Management provides powerful patching capabilities that allow you to modify binary code and data, test changes interactively, and export patched binaries.
+
+## Overview
+
+Patching in angr Management lets you:
+
+<CardGroup cols={2}>
+  <Card title="Modify Code" icon="microchip">
+    Change assembly instructions, replace with NOPs, or rewrite logic
+  </Card>
+  <Card title="Edit Data" icon="database">
+    Modify strings, constants, and data structures
+  </Card>
+  <Card title="Test Changes" icon="flask">
+    Verify patches with debugging before exporting
+  </Card>
+  <Card title="Export Binary" icon="file-export">
+    Save patched binary for deployment
+  </Card>
+</CardGroup>
+
+## Patch Types
+
+angr Management supports several patching approaches:
+
+### Assembly Patching
+
+Replace instructions with new assembly code:
+
+<Steps>
+  <Step title="Select Instruction">
+    Right-click on instruction in disassembly view
+  </Step>
+  <Step title="Open Patch Dialog">
+    Select "Patch Instruction"
+  </Step>
+  <Step title="Enter Assembly">
+    Type new assembly (e.g., `nop`, `xor eax, eax`, `jmp 0x401234`)
+  </Step>
+  <Step title="Apply">
+    Click OK to apply the patch
+  </Step>
+</Steps>
+
+**Examples:**
+
+```asm
+# NOP out an instruction
+nop
+
+# Change return value
+mov rax, 1
+ret
+
+# Skip a call
+nop
+nop
+nop
+nop
+nop
+
+# Redirect execution
+jmp 0x401000
+```
+
+### Hex Patching
+
+Directly modify bytes in the hex view:
+
+<Steps>
+  <Step title="Open Hex View">
+    View → Hex
+  </Step>
+  <Step title="Navigate to Address">
+    Press `G` and enter address, or scroll
+  </Step>
+  <Step title="Edit Bytes">
+    - Click on hex bytes section
+    - Type new hex values (e.g., `90` for NOP)
+    - Or click ASCII section to edit as text
+  </Step>
+  <Step title="Automatic Patch">
+    Patch is created automatically when you edit
+  </Step>
+</Steps>
+
+### Programmatic Patching
+
+Use the Python console for complex patches:
+
+```python
+# Patch via console
+workspace.patch(0x401000, "nop", pad=True)
+
+# Patch with raw bytes
+from angr.knowledge_plugins.patches import Patch
+addr = 0x401000
+new_bytes = b'\x90\x90\x90\x90\x90'  # 5 NOPs
+patch = Patch(addr, new_bytes)
+workspace.instance.patches.add_patch_obj(patch)
+
+# Multiple instruction patch
+asm_code = """mov rax, 0
+ret"""
+workspace.patch(0x401000, asm_code)
+```
+
+## Patch Management
+
+### Viewing Patches
+
+Open the **Patches View** (View → Patches) to see all patches:
+
+| Column | Description |
+|--------|-------------|
+| **Address** | Location of patch in hex |
+| **Size** | Number of bytes modified |
+| **Original** | Original byte values |
+| **Patched** | New byte values |
+| **Comment** | Optional description |
+
+### Patch Highlighting
+
+Patches are visually marked throughout the interface:
+
+- **Disassembly View**: Yellow background on patched instructions
+- **Hex View**: Yellow highlight on patched bytes
+- **Patches View**: Complete list with details
+
+### Editing Patches
+
+Modify existing patches:
+
+<Tabs>
+  <Tab title="In Patches View">
+    1. Double-click patch in Patches view
+    2. Modify bytes or comment
+    3. Click OK to save
+  </Tab>
+  <Tab title="In Hex View">
+    1. Navigate to patched address
+    2. Right-click on yellow highlight
+    3. Select patch operation:
+       - Split patch
+       - Merge with adjacent
+       - Set comment
+       - Revert
+  </Tab>
+  <Tab title="Re-patch">
+    Simply patch the same address again:
+    1. Right-click instruction
+    2. "Patch Instruction"
+    3. Enter new code
+    4. Previous patch is replaced
+  </Tab>
+</Tabs>
+
+### Reverting Patches
+
+<Accordion title="Single Patch">
+  **In Patches View:**
+  1. Right-click patch
+  2. Select "Revert Patch"
+  3. Confirm reversion
+  
+  **In Hex View:**
+  1. Right-click yellow highlight
+  2. Select "Revert"
+  3. Patch is removed
+</Accordion>
+
+<Accordion title="All Patches">
+  **Via Console:**
+  ```python
+  # Remove all patches
+  pm = workspace.instance.patches
+  for addr in list(pm.keys()):
+      pm.remove_patch(addr)
+  pm.am_event()
+  ```
+</Accordion>
+
+### Patch Comments
+
+Document your patches:
+
+1. Right-click patch (in Hex View or Patches View)
+2. Select "Set Comment"
+3. Enter description (e.g., "Bypass license check")
+4. Comment appears in Patches view
+
+## Common Patching Patterns
+
+### NOPing Instructions
+
+Remove unwanted instructions:
+
+<CodeGroup>
+```asm Original Code
+call check_license
+test eax, eax
+jz invalid_license
+```
+
+```asm Patched Code  
+nop                ; Patched: 5-byte NOP
+nop                ; Patched: test as NOP
+nop                ; Patched: jz as NOPs
+nop
+```
+</CodeGroup>
+
+**How to:**
+1. Right-click `call` instruction
+2. Patch Instruction → `nop`
+3. Repeat for `test` and `jz`
+4. Or use multi-byte NOP for efficiency
+
+### Changing Conditionals
+
+Flip conditional logic:
+
+<CodeGroup>
+```asm Original
+jz fail_case    ; Jump if zero
+```
+
+```asm Patched
+jnz fail_case   ; Jump if NOT zero
+# Or:
+jmp fail_case   ; Always jump
+# Or:
+nop            ; Never jump
+nop
+```
+</CodeGroup>
+
+### Forcing Return Values
+
+Change function results:
+
+<CodeGroup>
+```asm Original
+call expensive_check
+test eax, eax
+```
+
+```asm Patched
+mov eax, 1      ; Force success
+nop            ; Remove call
+nop
+nop
+nop
+test eax, eax  ; Keep test for consistency
+```
+</CodeGroup>
+
+### Redirecting Calls
+
+Change call targets:
+
+<CodeGroup>
+```asm Original
+call 0x401000   ; Original function
+```
+
+```asm Patched
+call 0x402000   ; New function
+```
+</CodeGroup>
+
+<Note>
+Ensure the new target has a compatible calling convention and signature.
+</Note>
+
+### Patching Data
+
+Modify strings and constants:
+
+<Tabs>
+  <Tab title="Strings">
+    **In Hex View:**
+    1. Navigate to string address
+    2. Click in ASCII column
+    3. Type new text
+    4. Null terminator handled automatically
+    
+    **Example:** Change "Error" to "OK   "
+  </Tab>
+  <Tab title="Constants">
+    **In Hex View:**
+    1. Navigate to constant
+    2. Edit hex bytes
+    3. Verify endianness
+    
+    **Example:** Change timeout from 1000 to 9999:
+    - Find: `E8 03 00 00` (1000 in little-endian)
+    - Change to: `0F 27 00 00` (9999 in little-endian)
+  </Tab>
+</Tabs>
+
+## Advanced Patching
+
+### Multi-Instruction Patches
+
+Replace multiple instructions:
+
+```python
+# Via console - more control
+addr = 0x401000
+
+# Assemble new code
+ks = workspace.instance.project.arch.keystone
+new_asm = """
+mov rax, 0
+test rax, rax
+ret
+"""
+new_bytes = ks.asm(new_asm, addr)[0]
+
+# Create patch
+from angr.knowledge_plugins.patches import Patch
+patch = Patch(addr, new_bytes)
+workspace.instance.patches.add_patch_obj(patch)
+```
+
+### Conditional Patching
+
+Apply patches based on conditions:
+
+```python
+# Patch all calls to a specific function
+target_func = 0x404000
+for func in workspace.instance.kb.functions.values():
+    for block in func.blocks:
+        for insn_addr in block.instruction_addrs:
+            insn = block.capstone.insns[insn_addr]
+            if insn.mnemonic == 'call':
+                # Check if calling target_func
+                operand = insn.op_str
+                if hex(target_func) in operand:
+                    # NOP out this call
+                    workspace.patch(insn_addr, 'nop', pad=True)
+```
+
+### Patch Merging
+
+Combine adjacent patches:
+
+1. Apply patch at address A
+2. Apply patch at address A+N (adjacent)
+3. In Hex View, right-click first patch
+4. Select "Merge with next"
+5. Patches combine into single patch
+
+<Tip>
+Merging patches can simplify patch management and reduce overhead.
+</Tip>
+
+### Patch Splitting
+
+Split large patches:
+
+1. Navigate to middle of patch in Hex View
+2. Right-click on patch highlight
+3. Select "Split"
+4. Two independent patches created
+
+**Use case:** You want to revert only part of a large patch.
+
+## Testing Patches
+
+### Debug Patched Code
+
+<Steps>
+  <Step title="Apply Patches">
+    Make your modifications
+  </Step>
+  <Step title="Set Breakpoint">
+    Break before or at patched code
+  </Step>
+  <Step title="Create State">
+    Right-click → "New State"
+  </Step>
+  <Step title="Step Through">
+    Press F7 to step through patched instructions
+  </Step>
+  <Step title="Verify">
+    Check registers, memory, and control flow
+  </Step>
+</Steps>
+
+### Decompile Patched Code
+
+View patches in pseudocode:
+
+1. Apply patches in disassembly
+2. Press `Tab` to switch to pseudocode
+3. Decompiler shows patched code
+4. Verify logic changes
+
+<Note>
+Decompiler uses patched bytes, so you see the modified logic in C code.
+</Note>
+
+## Exporting Patched Binaries
+
+### Save Patched Binary
+
+<Steps>
+  <Step title="Open Save Dialog">
+    File → Save Patched Binary As...
+  </Step>
+  <Step title="Choose Location">
+    Select output file path (e.g., `program.patched`)
+  </Step>
+  <Step title="Save">
+    Click Save
+  </Step>
+  <Step title="Verify">
+    Test the patched binary externally
+  </Step>
+</Steps>
+
+**What Gets Saved:**
+- All applied patches
+- Preserved file structure
+- Updated checksums (where applicable)
+- Original file format maintained
+
+### Patch Persistence
+
+Patches are stored in:
+
+1. **angr database (.adb)**: When you save the database
+2. **Patched binary**: When you export
+3. **Memory only**: Until you save (lost on exit)
+
+<Warning>
+Always save your database (File → Save angr database) to preserve patches across sessions.
+</Warning>
+
+## Patch Limitations
+
+<AccordionGroup>
+  <Accordion title="Size Constraints">
+    **Patches cannot exceed original instruction size**
+    
+    If your new code is longer:
+    - Use a jump to a code cave
+    - Place new code in unused space
+    - Jump back when done
+    
+    **Example:**
+    ```asm
+    # At original location (5 bytes)
+    jmp code_cave
+    
+    # At code_cave (unused space)
+    ; Your long patch here
+    ; ...
+    jmp return_address
+    ```
+  </Accordion>
+  
+  <Accordion title="Relocation Issues">
+    **Some binaries have relocations:**
+    
+    - PIE executables
+    - DLLs/shared libraries
+    - Position-independent code
+    
+    **Considerations:**
+    - Patched addresses may change at runtime
+    - Use relative addressing when possible
+    - Test at expected load address
+  </Accordion>
+  
+  <Accordion title="Code Signing">
+    **Signed binaries:**
+    
+    - Patches invalidate signatures
+    - Binary won't verify after patching
+    - May need to re-sign (platform-dependent)
+    
+    **Solution:** Remove/disable signature verification or re-sign.
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Document Patches" icon="book">
+    - Add comments to every patch
+    - Explain why the patch was needed
+    - Note any side effects
+    - Keep a patch log
+  </Card>
+  <Card title="Test Thoroughly" icon="vial">
+    - Use debugger to verify patches
+    - Test edge cases
+    - Check for unintended effects
+    - Validate with decompiler
+  </Card>
+  <Card title="Backup First" icon="floppy-disk">
+    - Save original binary
+    - Save angr database frequently
+    - Version your patches
+    - Test on copies, not originals
+  </Card>
+  <Card title="Minimal Changes" icon="minimize">
+    - Patch only what's necessary
+    - Preserve original behavior where possible
+    - Avoid cascading changes
+    - Keep patches simple
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Patch Not Applied">
+    **Patch doesn't appear in binary:**
+    
+    **Solutions:**
+    - Check Patches view for the patch
+    - Verify address is correct
+    - Ensure you exported after patching
+    - Check file permissions
+  </Accordion>
+  
+  <Accordion title="Crash After Patch">
+    **Patched binary crashes:**
+    
+    **Causes:**
+    - Incorrect instruction encoding
+    - Changed stack alignment
+    - Broken calling convention
+    - Invalid jump target
+    
+    **Debug:**
+    - Revert patches one by one
+    - Use debugger to find crash location
+    - Verify instruction bytes are correct
+  </Accordion>
+  
+  <Accordion title="Wrong Instruction Encoding">
+    **Patch assembles incorrectly:**
+    
+    **Solutions:**
+    - Check architecture (x86 vs x64, ARM mode)
+    - Verify syntax (AT&T vs Intel)
+    - Use hex bytes directly if needed
+    - Consult instruction reference
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Debugging" icon="bug" href="/user-guide/debugging">
+    Test patches with the debugger
+  </Card>
+  <Card title="Scripting" icon="code" href="/advanced/scripting">
+    Automate patching workflows
+  </Card>
+  <Card title="Advanced Topics" icon="graduation-cap" href="/advanced/binary-modification">
+    Advanced binary modification techniques
+  </Card>
+  <Card title="Disassembly" icon="microchip" href="/user-guide/disassembly">
+    Return to disassembly guide
+  </Card>
+</CardGroup>

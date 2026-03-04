@@ -1,80 +1,212 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get up and running with angr Management in minutes
 ---
 
-## Get started in three steps
+This guide will help you quickly get started with angr Management and perform your first binary analysis.
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
+Before you begin, ensure you have:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+- Python 3.10 or higher
+- A binary file to analyze (you can use any ELF, PE, or Mach-O executable)
+- Basic familiarity with reverse engineering concepts
+
+## Installation
+
+<Steps>
+  <Step title="Install angr Management">
+    Install via pip:
+
+    ```bash
+    pip install angr-management
+    ```
+
+    Or download a pre-built release from [GitHub Releases](https://github.com/angr/angr-management/releases).
+  </Step>
+
+  <Step title="Launch the application">
+    Run from the command line:
+
+    ```bash
+    angr-management
+    ```
+
+    Or use the shorter alias:
+
+    ```bash
+    am
+    ```
+  </Step>
+</Steps>
+
+## First Analysis
+
+<Steps>
+  <Step title="Load a binary">
+    1. Click **File → Load Binary** or press `Ctrl+O`
+    2. Select your binary file
+    3. Wait for the initial analysis to complete
+
+    <Note>
+      angr Management automatically performs CFG (Control Flow Graph) recovery when you load a binary. This may take a few seconds to several minutes depending on the binary size.
+    </Note>
+  </Step>
+
+  <Step title="Explore the disassembly">
+    The **Disassembly** view opens automatically, showing the control flow graph of the entry point.
+
+    **Key features:**
+    - **Graph view**: Visual representation of control flow
+    - **Linear view**: Traditional flat disassembly listing
+    - **Navigation**: Double-click functions in the **Functions** view to jump to them
+    - **Search**: Press `G` to go to a specific address
+  </Step>
+
+  <Step title="View the decompilation">
+    Right-click a function and select **Decompile** or press `F5`.
+
+    The **Pseudocode** view displays high-level C-like code:
+
+    ```c
+    // Example decompiled output
+    int64_t main(int64_t argc, char** argv) {
+        int64_t rax = sub_401000();
+        if (rax == 0) {
+            puts("Hello, World!");
+        }
+        return rax;
+    }
+    ```
+
+    **Interact with the decompilation:**
+    - Press `N` to rename variables
+    - Press `Y` to retype variables
+    - Right-click for more options
+  </Step>
+
+  <Step title="Use the console">
+    Open the **Console** view from **View → Console** or press `Alt+4`.
+
+    The console provides an IPython environment with full access to the angr API:
+
+    ```python
+    # Access the project
+    >>> proj = workspace.main_instance.project.am_obj
+    >>> proj
+    <Project /path/to/binary>
+
+    # List all functions
+    >>> for func in proj.kb.functions.values():
+    ...     print(hex(func.addr), func.name)
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    # Perform symbolic execution
+    >>> import angr
+    >>> state = proj.factory.entry_state()
+    >>> simgr = proj.factory.simulation_manager(state)
+    >>> simgr.explore(find=0x401234)
+    ```
+  </Step>
+</Steps>
 
-### Step 2: Deploy your changes
+## Common Workflows
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
+<Accordion title="Finding and analyzing a specific function">
+  1. Open the **Functions** view (usually on the left sidebar)
+  2. Search for your function by name or filter by address
+  3. Double-click the function to jump to it in the disassembly
+  4. Press `F5` to decompile
+  5. Press `N` on variables or function names to rename them
+  6. Press `Y` on variables to change their types
 </Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
+<Accordion title="Searching for strings">
+  1. Open **View → Strings** or press `Alt+8`
+  2. Browse the list of all strings found in the binary
+  3. Double-click a string to see where it's referenced
+  4. Use the filter box to search for specific strings
 </Accordion>
 
-## Next steps
+<Accordion title="Setting breakpoints for debugging">
+  1. Right-click an instruction in the disassembly view
+  2. Select **Toggle Breakpoint** or press `F2`
+  3. Open **View → Breakpoints** to manage all breakpoints
+  4. Use **Run → Continue** (`F9`) to start debugging
+  5. Use **Run → Step Into** (`F7`) and **Run → Step Over** (`F8`) to step through code
+</Accordion>
 
-Now that you have your docs running, explore these key features:
+<Accordion title="Patching a binary">
+  1. Right-click an instruction in the disassembly view
+  2. Select **Patch Instruction**
+  3. Enter new assembly code or hex bytes
+  4. Open **View → Patches** to review all patches
+  5. Click **File → Export Patched Binary** to save your changes
+</Accordion>
+
+## Keyboard Shortcuts
+
+Here are the most useful keyboard shortcuts to get you started:
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+O` | Open binary |
+| `Ctrl+S` | Save project |
+| `F5` | Decompile function |
+| `G` | Go to address |
+| `N` | Rename variable/function |
+| `Y` | Retype variable |
+| `X` | Show cross-references |
+| `F2` | Toggle breakpoint |
+| `F9` | Continue (debugging) |
+| `F7` | Step into |
+| `F8` | Step over |
+| `Ctrl+Shift+P` | Open command palette |
+| `Alt+1-9` | Switch between views |
+
+See the [Keyboard Shortcuts](/reference/keyboard-shortcuts) reference for a complete list.
+
+## Next Steps
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card
+    title="User Guide"
+    icon="book-open"
+    href="/user-guide/interface-overview"
+  >
+    Learn about all the views and features
+  </Card>
+  <Card
+    title="Decompilation Guide"
+    icon="code"
+    href="/user-guide/decompilation"
+  >
+    Master the interactive decompiler
+  </Card>
+  <Card
+    title="Analysis Capabilities"
+    icon="microscope"
+    href="/features/analysis-capabilities"
+  >
+    Explore symbolic execution and advanced analyses
+  </Card>
+  <Card
+    title="Plugin System"
+    icon="puzzle-piece"
+    href="/features/plugins"
+  >
+    Extend angr Management with plugins
+  </Card>
 </CardGroup>
 
+## Getting Help
+
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  If you run into issues, check the [Troubleshooting Guide](/reference/troubleshooting) or [FAQ](/reference/faq).
 </Note>
+
+Join the angr community:
+
+- **Discord**: [angr Discord Server](https://angr.io/invite/)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/angr/angr-management/issues)
+- **Documentation**: [angr Documentation](https://docs.angr.io)

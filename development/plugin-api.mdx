@@ -1,0 +1,730 @@
+---
+title: Plugin API Reference
+description: Complete reference for the BasePlugin class methods and attributes
+---
+
+## BasePlugin Class
+
+The `BasePlugin` class is the base class for all angr Management plugins. Subclass it and override methods to customize behavior.
+
+```python
+from angrmanagement.plugins import BasePlugin
+
+class MyPlugin(BasePlugin):
+    pass
+```
+
+## Class Attributes
+
+<ParamField path="DISPLAY_NAME" type="str | None">
+  Human-readable name for your plugin. If not set, the class name is used.
+  
+  ```python
+  DISPLAY_NAME = "My Awesome Plugin"
+  ```
+</ParamField>
+
+<ParamField path="REQUIRE_WORKSPACE" type="bool" default="True">
+  Whether this plugin requires a workspace (UI mode). Set to `False` for headless plugins.
+  
+  ```python
+  REQUIRE_WORKSPACE = False  # Can run without UI
+  ```
+</ParamField>
+
+<ParamField path="TOOLBAR_BUTTONS" type="list[tuple[QIcon, str]]" default="[]">
+  List of toolbar buttons to add. Each tuple contains an icon and tooltip.
+  
+  ```python
+  from PySide6.QtGui import QIcon
+  
+  TOOLBAR_BUTTONS = [
+      (QIcon("path/to/icon.png"), "My Tool"),
+      (QIcon.fromTheme("edit-find"), "Search"),
+  ]
+  ```
+</ParamField>
+
+<ParamField path="MENU_BUTTONS" type="list[str]" default="[]">
+  List of menu items to add to the Plugins menu.
+  
+  ```python
+  MENU_BUTTONS = [
+      "Open Trace...",
+      "Clear Trace",
+      "Export Results",
+  ]
+  ```
+</ParamField>
+
+<ParamField path="FUNC_COLUMNS" type="list[str]" default="[]">
+  List of column names to add to the functions table.
+  
+  ```python
+  FUNC_COLUMNS = ["Coverage", "Complexity"]
+  ```
+</ParamField>
+
+<ParamField path="URL_ACTIONS" type="list[str]" default="[]">
+  List of URL action names this plugin handles.
+  
+  ```python
+  URL_ACTIONS = ["openbitmap", "opentrace"]
+  ```
+</ParamField>
+
+<ParamField path="CONFIG_ENTRIES" type="list[ConfigurationEntry]" default="[]">
+  Custom configuration entries for this plugin.
+  
+  ```python
+  from angrmanagement.config.config_entry import ConfigurationEntry
+  
+  CONFIG_ENTRIES = [
+      ConfigurationEntry("my_setting", bool, True, "Enable feature"),
+  ]
+  ```
+</ParamField>
+
+<ParamField path="OPTIMIZATION_PASSES" type="list[tuple[type[OptimizationPass], bool]]" default="[]">
+  Decompiler optimization passes to register.
+  
+  ```python
+  OPTIMIZATION_PASSES = [
+      (MyOptimizationPass, True),  # (pass_class, run_by_default)
+  ]
+  ```
+</ParamField>
+
+## Lifecycle Methods
+
+### `__init__(workspace)`
+
+Initialize the plugin. This is where you should:
+- Set up instance variables
+- Subscribe to object containers
+- Register custom containers
+- Perform lightweight initialization
+
+<ParamField path="workspace" type="Workspace | None">
+  The workspace instance. Will be `None` if `REQUIRE_WORKSPACE = False`.
+</ParamField>
+
+```python
+def __init__(self, workspace):
+    super().__init__(workspace)
+    self.workspace = workspace
+    
+    # Subscribe to project changes
+    workspace.main_instance.project.am_subscribe(self._on_project_changed)
+```
+
+### `teardown()`
+
+Clean up when the plugin is deactivated. Unsubscribe from containers and remove UI elements.
+
+```python
+def teardown(self):
+    # Unsubscribe from containers
+    self.workspace.main_instance.project.am_unsubscribe(self._on_project_changed)
+    
+    # Clean up resources
+    if hasattr(self, 'worker_thread'):
+        self.worker_thread.stop()
+```
+
+## Generic Callbacks
+
+### `status_bar_permanent_widgets()`
+
+Yield widgets to add to the right side of the status bar.
+
+**Returns:** `Generator` or `None`
+
+```python
+def status_bar_permanent_widgets(self):
+    from PySide6.QtWidgets import QLabel
+    
+    label = QLabel("Plugin Active")
+    yield label
+```
+
+### `on_workspace_initialized(workspace)`
+
+Called right after a workspace is initialized.
+
+<ParamField path="workspace" type="Workspace">
+  The newly initialized workspace.
+</ParamField>
+
+```python
+def on_workspace_initialized(self, workspace):
+    self.workspace.log("Workspace ready!")
+```
+
+### `angrdb_store_entries()`
+
+Yield key-value pairs to persist in angrDb when saving the project.
+
+**Returns:** `Generator` or `None`
+
+```python
+def angrdb_store_entries(self):
+    yield ("setting1", str(self.my_setting))
+    yield ("data", json.dumps(self.my_data))
+```
+
+### `angrdb_load_entry(key, value)`
+
+Called for each entry loaded from angrDb.
+
+<ParamField path="key" type="str">
+  The entry key.
+</ParamField>
+
+<ParamField path="value" type="str">
+  The entry value.
+</ParamField>
+
+```python
+def angrdb_load_entry(self, key, value):
+    if key == "setting1":
+        self.my_setting = bool(value)
+    elif key == "data":
+        self.my_data = json.loads(value)
+```
+
+## UI Callbacks
+
+### `color_insn(addr, selected, disasm_view)`
+
+Return a color for an instruction at the given address.
+
+<ParamField path="addr" type="int">
+  Instruction address.
+</ParamField>
+
+<ParamField path="selected" type="bool">
+  Whether the instruction is selected.
+</ParamField>
+
+<ParamField path="disasm_view" type="DisassemblyView">
+  The disassembly view instance.
+</ParamField>
+
+**Returns:** `QColor | None`
+
+```python
+def color_insn(self, addr, selected, disasm_view):
+    if addr in self.highlighted_addrs:
+        from PySide6.QtGui import QColor
+        return QColor(255, 200, 200)
+    return None
+```
+
+### `color_block(addr)`
+
+Return a color for a basic block at the given address.
+
+<ParamField path="addr" type="int">
+  Block address.
+</ParamField>
+
+**Returns:** `QColor | None`
+
+```python
+def color_block(self, addr):
+    if addr in self.covered_blocks:
+        from PySide6.QtGui import QColor
+        return QColor(220, 255, 220)  # Light green
+    return None
+```
+
+### `color_func(func)`
+
+Return a color for a function.
+
+<ParamField path="func" type="Function">
+  The angr Function object.
+</ParamField>
+
+**Returns:** `QColor | None`
+
+```python
+def color_func(self, func):
+    if func.addr in self.analyzed_functions:
+        from PySide6.QtGui import QColor
+        return QColor(200, 220, 255)  # Light blue
+    return None
+```
+
+### `draw_insn(qinsn, painter)`
+
+Custom drawing on an instruction.
+
+<ParamField path="qinsn" type="QInstruction">
+  The instruction widget.
+</ParamField>
+
+<ParamField path="painter" type="QPainter">
+  Qt painter object.
+</ParamField>
+
+```python
+def draw_insn(self, qinsn, painter):
+    # Draw a marker next to important instructions
+    if qinsn.insn.addr in self.important_addrs:
+        from PySide6.QtGui import QColor, QPen
+        painter.setPen(QPen(QColor(255, 0, 0)))
+        painter.drawRect(0, 0, 5, qinsn.height)
+```
+
+### `draw_block(qblock, painter)`
+
+Custom drawing on a basic block.
+
+<ParamField path="qblock" type="QBlock">
+  The block widget.
+</ParamField>
+
+<ParamField path="painter" type="QPainter">
+  Qt painter object.
+</ParamField>
+
+```python
+def draw_block(self, qblock, painter):
+    # Add custom annotations to blocks
+    pass
+```
+
+### `instrument_disassembly_view(dview)`
+
+Add custom widgets or modify the disassembly view.
+
+<ParamField path="dview" type="DisassemblyView">
+  The disassembly view instance.
+</ParamField>
+
+```python
+def instrument_disassembly_view(self, dview):
+    from PySide6.QtWidgets import QLabel
+    
+    label = QLabel("Plugin Info", parent=dview)
+    dview.layout().addWidget(label)
+    label.hide()  # Show when needed
+```
+
+### `instrument_code_view(cview)`
+
+Add custom widgets or modify the code (decompiler) view.
+
+<ParamField path="cview" type="CodeView">
+  The code view instance.
+</ParamField>
+
+```python
+def instrument_code_view(self, cview):
+    # Add custom widgets to decompiler view
+    pass
+```
+
+### `handle_click_insn(qinsn, event)`
+
+Handle clicks on instructions.
+
+<ParamField path="qinsn" type="QInstruction">
+  The clicked instruction widget.
+</ParamField>
+
+<ParamField path="event" type="QGraphicsSceneMouseEvent">
+  The mouse event.
+</ParamField>
+
+**Returns:** `bool` - `True` if handled, `False` otherwise
+
+```python
+def handle_click_insn(self, qinsn, event):
+    from PySide6.QtCore import Qt
+    
+    if event.button() == Qt.MouseButton.RightButton:
+        # Custom right-click handling
+        self.show_custom_menu(qinsn.insn.addr)
+        return True
+    return False
+```
+
+### `handle_click_block(qblock, event)`
+
+Handle clicks on basic blocks.
+
+<ParamField path="qblock" type="QBlock">
+  The clicked block widget.
+</ParamField>
+
+<ParamField path="event" type="QGraphicsSceneMouseEvent">
+  The mouse event.
+</ParamField>
+
+**Returns:** `bool` - `True` if handled, `False` otherwise
+
+```python
+def handle_click_block(self, qblock, event):
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication
+    
+    if (QApplication.keyboardModifiers() == Qt.KeyboardModifier.ControlModifier
+            and event.button() == Qt.MouseButton.RightButton):
+        # Ctrl+Right-click on block
+        self.analyze_block(qblock.addr)
+        return True
+    return False
+```
+
+### `handle_raise_view(view)`
+
+Called when a view is raised (brought to front).
+
+<ParamField path="view" type="View">
+  The view that was raised.
+</ParamField>
+
+```python
+def handle_raise_view(self, view):
+    if view.category == "disassembly":
+        self.update_disassembly_info()
+```
+
+### `handle_click_toolbar(idx)`
+
+Handle toolbar button clicks.
+
+<ParamField path="idx" type="int">
+  Index of the clicked button in `TOOLBAR_BUTTONS`.
+</ParamField>
+
+```python
+TOOLBAR_BUTTONS = [(QIcon.fromTheme("document-save"), "Save Results")]
+
+def handle_click_toolbar(self, idx):
+    if idx == 0:
+        self.save_results()
+```
+
+### `handle_click_menu(idx)`
+
+Handle menu button clicks.
+
+<ParamField path="idx" type="int">
+  Index of the clicked item in `MENU_BUTTONS`.
+</ParamField>
+
+```python
+MENU_BUTTONS = ["Start Analysis", "Stop Analysis"]
+
+def handle_click_menu(self, idx):
+    if idx == 0:
+        self.start_analysis()
+    elif idx == 1:
+        self.stop_analysis()
+```
+
+### `extract_func_column(func, idx)`
+
+Extract data for custom function table columns.
+
+<ParamField path="func" type="Function">
+  The function object.
+</ParamField>
+
+<ParamField path="idx" type="int">
+  Column index in `FUNC_COLUMNS`.
+</ParamField>
+
+**Returns:** `tuple[Any, str]` - (sortable_data, display_string)
+
+```python
+FUNC_COLUMNS = ["Coverage", "Complexity"]
+
+def extract_func_column(self, func, idx):
+    if idx == 0:  # Coverage
+        coverage = self.get_coverage(func)
+        return coverage, f"{coverage:.1f}%"
+    elif idx == 1:  # Complexity
+        complexity = len(func.block_addrs_set)
+        return complexity, str(complexity)
+    return 0, ""
+```
+
+### `build_context_menu_insn(item)`
+
+Build context menu entries for instructions.
+
+<ParamField path="item" type="QInstruction">
+  The instruction item.
+</ParamField>
+
+**Returns:** `Iterable[None | tuple[str, Callable]]` - `None` for separators, tuples of (text, callback)
+
+```python
+def build_context_menu_insn(self, item):
+    yield ("Analyze Instruction", lambda: self.analyze_insn(item.insn.addr))
+    yield None  # Separator
+    yield ("Copy Address", lambda: self.copy_address(item.insn.addr))
+```
+
+### `build_context_menu_block(item)`
+
+Build context menu entries for blocks.
+
+<ParamField path="item" type="QBlock">
+  The block item.
+</ParamField>
+
+**Returns:** `Iterable[None | tuple[str, Callable]]`
+
+```python
+def build_context_menu_block(self, item):
+    yield ("Mark as Critical", lambda: self.mark_critical(item.addr))
+```
+
+### `build_context_menu_node(node)`
+
+Build context menu entries for graph nodes.
+
+<ParamField path="node" type="Node">
+  The graph node.
+</ParamField>
+
+**Returns:** `Iterable[None | tuple[str, Callable]]`
+
+```python
+def build_context_menu_node(self, node):
+    yield ("Highlight Path", lambda: self.highlight_path(node))
+```
+
+### `build_context_menu_functions(funcs)`
+
+Build context menu entries for the functions list.
+
+<ParamField path="funcs" type="list[Function]">
+  Selected function(s).
+</ParamField>
+
+**Returns:** `Iterable[None | tuple[str, Callable] | tuple[str, list[tuple[str, Callable]]]]`
+
+The third form creates a submenu.
+
+```python
+def build_context_menu_functions(self, funcs):
+    yield ("Export", [
+        ("Export to JSON", lambda: self.export_json(funcs)),
+        ("Export to CSV", lambda: self.export_csv(funcs)),
+    ])
+```
+
+### `build_context_menu_label(addr)`
+
+Build context menu entries for labels.
+
+<ParamField path="addr" type="int">
+  Label address.
+</ParamField>
+
+**Returns:** `Iterable[None | tuple[str, Callable]]`
+
+```python
+def build_context_menu_label(self, addr):
+    yield ("Add to Watchlist", lambda: self.add_to_watchlist(addr))
+```
+
+### `build_qblock_annotations(qblock)`
+
+Build custom annotations for blocks.
+
+<ParamField path="qblock" type="QBlock">
+  The block widget.
+</ParamField>
+
+**Returns:** `Iterable[QInstructionAnnotation]`
+
+```python
+def build_qblock_annotations(self, qblock):
+    from angrmanagement.ui.widgets.qinst_annotation import QPassthroughCount
+    
+    if qblock.addr in self.hotspot_blocks:
+        yield QPassthroughCount(qblock.addr, "hotspot")
+```
+
+### `handle_url_action(action, kwargs)`
+
+Handle URL actions for this plugin.
+
+<ParamField path="action" type="str">
+  The action name from `URL_ACTIONS`.
+</ParamField>
+
+<ParamField path="kwargs" type="dict">
+  Action parameters.
+</ParamField>
+
+```python
+URL_ACTIONS = ["openfile"]
+
+def handle_url_action(self, action, kwargs):
+    if action == "openfile":
+        path = kwargs.get("path")
+        self.open_file(path)
+```
+
+### `step_callback(simgr)`
+
+Called after each step in symbolic execution.
+
+<ParamField path="simgr" type="SimulationManager">
+  The simulation manager.
+</ParamField>
+
+```python
+def step_callback(self, simgr):
+    print(f"Active states: {len(simgr.active)}")
+```
+
+## Decompiler Callbacks
+
+### `handle_stack_var_renamed(func, offset, old_name, new_name)`
+
+Handle stack variable renaming.
+
+**Returns:** `bool` - `True` if handled
+
+```python
+def handle_stack_var_renamed(self, func, offset, old_name, new_name):
+    self.log_rename("stack_var", old_name, new_name)
+    return False  # Let other plugins handle it too
+```
+
+### `handle_stack_var_retyped(func, offset, old_type, new_type)`
+
+Handle stack variable type changes.
+
+**Returns:** `bool` - `True` if handled
+
+### `handle_func_arg_renamed(func, offset, old_name, new_name)`
+
+Handle function argument renaming.
+
+**Returns:** `bool` - `True` if handled
+
+### `handle_func_arg_retyped(func, offset, old_type, new_type)`
+
+Handle function argument type changes.
+
+**Returns:** `bool` - `True` if handled
+
+### `handle_global_var_renamed(address, old_name, new_name)`
+
+Handle global variable renaming.
+
+**Returns:** `bool` - `True` if handled
+
+### `handle_global_var_retyped(address, old_type, new_type)`
+
+Handle global variable type changes.
+
+**Returns:** `bool` - `True` if handled
+
+### `handle_other_var_renamed(var, old_name, new_name)`
+
+Handle other variable renaming.
+
+**Returns:** `bool` - `True` if handled
+
+### `handle_other_var_retyped(var, old_type, new_type)`
+
+Handle other variable type changes.
+
+**Returns:** `bool` - `True` if handled
+
+### `handle_function_renamed(func, old_name, new_name)`
+
+Handle function renaming.
+
+**Returns:** `bool` - `True` if handled
+
+### `handle_function_retyped(func, old_type, new_type)`
+
+Handle function type changes.
+
+**Returns:** `bool` - `True` if handled
+
+### `handle_comment_changed(address, old_cmt, new_cmt, created, decomp)`
+
+Handle comment changes.
+
+<ParamField path="address" type="int">
+  Comment address.
+</ParamField>
+
+<ParamField path="old_cmt" type="str">
+  Previous comment.
+</ParamField>
+
+<ParamField path="new_cmt" type="str">
+  New comment.
+</ParamField>
+
+<ParamField path="created" type="bool">
+  Whether this is a new comment.
+</ParamField>
+
+<ParamField path="decomp" type="bool">
+  Whether this is a decompiler comment.
+</ParamField>
+
+**Returns:** `bool` - `True` if handled
+
+### `handle_struct_changed(old_struct, new_struct)`
+
+Handle struct definition changes.
+
+**Returns:** `bool` - `True` if handled
+
+### `decompile_callback(func)`
+
+Called right after a function is decompiled.
+
+<ParamField path="func" type="Function">
+  The decompiled function.
+</ParamField>
+
+```python
+def decompile_callback(self, func):
+    # Access the decompilation result
+    if (func.addr, 'pseudocode') in self.workspace.instance.kb.decompilations:
+        codegen = self.workspace.instance.kb.decompilations[(func.addr, 'pseudocode')]
+        # Analyze the decompiled code
+```
+
+## Project Callbacks
+
+### `handle_project_save(file_name)`
+
+Called when the project is saved.
+
+<ParamField path="file_name" type="str">
+  The save file path.
+</ParamField>
+
+```python
+def handle_project_save(self, file_name):
+    self.workspace.log(f"Project saved to {file_name}")
+```
+
+### `handle_project_initialization()`
+
+Called when a new project is loaded.
+
+```python
+def handle_project_initialization(self):
+    self.reset_analysis_state()
+    self.workspace.log("New project loaded")
+```

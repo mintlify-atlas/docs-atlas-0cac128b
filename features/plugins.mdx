@@ -1,0 +1,680 @@
+---
+title: Plugin System
+description: Extend angr Management with custom plugins
+---
+
+angr Management features a powerful plugin system that allows you to extend and customize the analysis environment. Plugins can add new views, modify UI elements, hook into analysis events, and integrate with external tools.
+
+## Plugin Architecture
+
+The plugin system is built around the `BasePlugin` class and a centralized `PluginManager` that handles loading, activation, and event dispatching.
+
+### Key Components
+
+<CardGroup cols={2}>
+  <Card title="BasePlugin" icon="puzzle-piece">
+    Base class that all plugins extend
+  </Card>
+  <Card title="PluginManager" icon="gears">
+    Manages plugin lifecycle and event dispatching
+  </Card>
+  <Card title="Plugin Descriptions" icon="file">
+    TOML metadata files describing plugins
+  </Card>
+  <Card title="Event Hooks" icon="hook">
+    Callbacks for UI and analysis events
+  </Card>
+</CardGroup>
+
+## Creating a Plugin
+
+### Basic Plugin Structure
+
+Create a new plugin by subclassing `BasePlugin` (`angrmanagement/plugins/base_plugin.py:27`):
+
+```python
+from angrmanagement.plugins import BasePlugin
+from angrmanagement.ui.workspace import Workspace
+
+class MyPlugin(BasePlugin):
+    # Human-readable name
+    DISPLAY_NAME = "My Custom Plugin"
+    
+    # Whether plugin requires a workspace (UI mode)
+    REQUIRE_WORKSPACE = True
+    
+    def __init__(self, workspace: Workspace) -> None:
+        super().__init__(workspace)
+        # Initialize your plugin
+        self.my_data = {}
+    
+    def teardown(self) -> None:
+        # Clean up when plugin is deactivated
+        self.my_data.clear()
+```
+
+### Plugin Metadata
+
+Create a `plugin.toml` file to describe your plugin (`angrmanagement/plugins/plugin_description.py:7`):
+
+```toml
+[meta]
+plugin_metadata_version = 0
+
+[plugin]
+name = "My Custom Plugin"
+shortname = "my_plugin"
+version = "1.0.0"
+description = "A plugin that does amazing things"
+long_description = "Detailed description of what this plugin does"
+platforms = ["windows", "linux", "macos"]
+min_angr_version = "9.0.0.0"
+author = "Your Name"
+entrypoints = ["my_plugin.py"]
+require_workspace = true
+has_url_actions = false
+```
+
+### Sample Plugin
+
+Here's a complete example (`angrmanagement/plugins/sample_plugin.py`):
+
+```python
+from angrmanagement.plugins import BasePlugin
+from angrmanagement.ui.widgets.qinst_annotation import (
+    QInstructionAnnotation, 
+    QPassthroughCount
+)
+from angrmanagement.ui.workspace import Workspace
+from angr.sim_manager import SimulationManager
+
+class SamplePlugin(BasePlugin):
+    def __init__(self, workspace: Workspace) -> None:
+        super().__init__(workspace)
+        
+        # Register a custom data container
+        workspace.main_instance.register_container(
+            "bookmarks", 
+            list, 
+            list[int], 
+            "Bookmarked addresses"
+        )
+    
+    # Add menu buttons
+    MENU_BUTTONS = ("Add Bookmark",)
+    
+    def build_context_menu_functions(self, funcs):
+        # Add context menu items
+        yield ("owo", [("uwu", lambda: None), ("o_O", lambda: None)])
+    
+    def step_callback(self, simgr: SimulationManager) -> None:
+        # Called on each simulation step
+        print(f"Active States: {simgr}")
+    
+    def build_qblock_annotations(self, qblock):
+        # Add visual annotations to blocks
+        return [QPassthroughCount(qblock.addr, "entry")]
+```
+
+## Plugin Capabilities
+
+### UI Customization
+
+Plugins can customize the UI in multiple ways:
+
+#### Toolbar Buttons
+
+```python
+from PySide6.QtGui import QIcon
+
+class MyPlugin(BasePlugin):
+    TOOLBAR_BUTTONS = [
+        (QIcon("path/to/icon.png"), "My Action"),
+        (QIcon("path/to/icon2.png"), "Another Action"),
+    ]
+    
+    def handle_click_toolbar(self, idx: int) -> None:
+        if idx == 0:
+            # Handle first button click
+            pass
+        elif idx == 1:
+            # Handle second button click
+            pass
+```
+
+#### Menu Buttons
+
+```python
+class MyPlugin(BasePlugin):
+    MENU_BUTTONS = [
+        "Plugin Action 1",
+        "Plugin Action 2",
+    ]
+    
+    def handle_click_menu(self, idx: int) -> None:
+        if idx == 0:
+            # Handle first menu action
+            self.do_action_1()
+```
+
+#### Status Bar Widgets
+
+```python
+from PySide6.QtWidgets import QLabel
+
+class MyPlugin(BasePlugin):
+    def status_bar_permanent_widgets(self):
+        label = QLabel("Plugin Status")
+        yield label
+```
+
+### Visual Customization
+
+#### Coloring Instructions
+
+```python
+from PySide6.QtGui import QColor
+
+class MyPlugin(BasePlugin):
+    def color_insn(self, addr: int, selected, disasm_view) -> QColor | None:
+        # Color specific instructions
+        if addr in self.important_addresses:
+            return QColor(255, 0, 0)  # Red
+        return None
+```
+
+#### Coloring Blocks
+
+```python
+class MyPlugin(BasePlugin):
+    def color_block(self, addr: int) -> QColor | None:
+        # Color basic blocks
+        if addr in self.interesting_blocks:
+            return QColor(0, 255, 0)  # Green
+        return None
+```
+
+#### Coloring Functions
+
+```python
+class MyPlugin(BasePlugin):
+    def color_func(self, func) -> QColor | None:
+        # Color functions in the function list
+        if func.name.startswith("vuln_"):
+            return QColor(255, 165, 0)  # Orange
+        return None
+```
+
+#### Custom Drawing
+
+```python
+from PySide6.QtGui import QPainter
+from angrmanagement.ui.widgets.qinstruction import QInstruction
+from angrmanagement.ui.widgets.qblock import QBlock
+
+class MyPlugin(BasePlugin):
+    def draw_insn(self, qinsn: QInstruction, painter: QPainter) -> None:
+        # Custom drawing on instructions
+        pass
+    
+    def draw_block(self, qblock: QBlock, painter: QPainter) -> None:
+        # Custom drawing on blocks
+        pass
+```
+
+### Context Menus
+
+Add custom context menu items:
+
+```python
+class MyPlugin(BasePlugin):
+    def build_context_menu_insn(self, item):
+        # Right-click menu for instructions
+        yield ("Analyze Instruction", self.analyze_instruction)
+        yield None  # Separator
+        yield ("Mark as Important", lambda: self.mark_important(item))
+    
+    def build_context_menu_block(self, item):
+        # Right-click menu for blocks
+        yield ("Analyze Block", self.analyze_block)
+    
+    def build_context_menu_functions(self, funcs):
+        # Right-click menu for functions
+        yield ("Batch Process", lambda: self.batch_process(funcs))
+    
+    def build_context_menu_label(self, addr: int):
+        # Right-click menu for labels
+        yield ("Goto Address", lambda: self.goto(addr))
+```
+
+### Function Table Columns
+
+Add custom columns to the function table:
+
+```python
+class MyPlugin(BasePlugin):
+    FUNC_COLUMNS = ["Complexity", "Risk Score"]
+    
+    def extract_func_column(self, func, idx: int) -> tuple[Any, str]:
+        if idx == 0:
+            # Complexity column
+            complexity = self.calculate_complexity(func)
+            return complexity, str(complexity)
+        elif idx == 1:
+            # Risk score column
+            risk = self.calculate_risk(func)
+            return risk, f"{risk:.2f}"
+        return 0, ""
+```
+
+## Event Hooks
+
+### Analysis Events
+
+```python
+class MyPlugin(BasePlugin):
+    def decompile_callback(self, func) -> None:
+        # Called after function is decompiled
+        codegen = self.workspace.instance.kb.decompilations[
+            (func.addr, 'pseudocode')
+        ]
+        # Analyze decompiled code
+    
+    def step_callback(self, simgr: SimulationManager) -> None:
+        # Called during symbolic execution
+        pass
+```
+
+### Variable and Type Events
+
+```python
+class MyPlugin(BasePlugin):
+    def handle_stack_var_renamed(
+        self, func, offset: int, old_name: str, new_name: str
+    ) -> bool:
+        # React to variable renames
+        print(f"Variable renamed: {old_name} -> {new_name}")
+        return False  # Return True to indicate you handled it
+    
+    def handle_function_renamed(
+        self, func, old_name: str, new_name: str
+    ) -> bool:
+        # React to function renames
+        return False
+    
+    def handle_comment_changed(
+        self, address, old_cmt, new_cmt, created: bool, decomp: bool
+    ) -> bool:
+        # React to comment changes
+        return False
+```
+
+### Project Events
+
+```python
+class MyPlugin(BasePlugin):
+    def handle_project_initialization(self) -> None:
+        # Called when a project is loaded
+        self.initialize_data()
+    
+    def handle_project_save(self, file_name: str) -> None:
+        # Called when project is saved
+        self.save_plugin_data(file_name)
+    
+    def on_workspace_initialized(self, workspace: Workspace) -> None:
+        # Called after workspace initialization
+        pass
+```
+
+### View Events
+
+```python
+from angrmanagement.ui.views import DisassemblyView, CodeView
+
+class MyPlugin(BasePlugin):
+    def instrument_disassembly_view(self, dview: DisassemblyView) -> None:
+        # Customize disassembly views
+        dview.my_custom_property = True
+    
+    def instrument_code_view(self, cview: CodeView) -> None:
+        # Customize decompiler views
+        pass
+    
+    def handle_raise_view(self, view) -> None:
+        # Called when a view is focused
+        pass
+```
+
+### Click Events
+
+```python
+from PySide6.QtWidgets import QGraphicsSceneMouseEvent
+
+class MyPlugin(BasePlugin):
+    def handle_click_insn(
+        self, qinsn, event: QGraphicsSceneMouseEvent
+    ) -> bool:
+        # Handle instruction clicks
+        if event.button() == Qt.MouseButton.RightButton:
+            # Custom right-click behavior
+            return True  # Consume event
+        return False  # Let other handlers process
+    
+    def handle_click_block(
+        self, qblock, event: QGraphicsSceneMouseEvent
+    ) -> bool:
+        # Handle block clicks
+        return False
+```
+
+## Data Persistence
+
+Plugins can persist data in angr databases:
+
+```python
+class MyPlugin(BasePlugin):
+    def angrdb_store_entries(self):
+        # Store plugin data
+        yield ("my_data_key", json.dumps(self.my_data))
+        yield ("last_update", str(time.time()))
+    
+    def angrdb_load_entry(self, key: str, value: str) -> None:
+        # Load plugin data
+        if key == "my_data_key":
+            self.my_data = json.loads(value)
+        elif key == "last_update":
+            self.last_update = float(value)
+```
+
+## Decompiler Integration
+
+### Custom Optimization Passes
+
+```python
+from angr.analyses.decompiler.optimization_passes import OptimizationPass
+
+class MyOptimizationPass(OptimizationPass):
+    def _analyze(self):
+        # Custom optimization logic
+        pass
+
+class MyPlugin(BasePlugin):
+    OPTIMIZATION_PASSES = [
+        (MyOptimizationPass, True),  # (Pass class, enabled)
+    ]
+```
+
+## Configuration Entries
+
+Add custom configuration options:
+
+```python
+from angrmanagement.config.config_entry import ConfigurationEntry
+
+class MyPlugin(BasePlugin):
+    CONFIG_ENTRIES = [
+        ConfigurationEntry(
+            "my_plugin_option",
+            bool,
+            True,
+            "Enable my plugin feature"
+        ),
+        ConfigurationEntry(
+            "my_plugin_threshold",
+            int,
+            100,
+            "Threshold for plugin analysis"
+        ),
+    ]
+```
+
+## URL Actions
+
+Handle custom URL schemes:
+
+```python
+class MyPlugin(BasePlugin):
+    URL_ACTIONS = ["myplugin"]
+    
+    def handle_url_action(self, action, kwargs) -> None:
+        if action == "myplugin":
+            # Handle angr://myplugin?param=value
+            param = kwargs.get("param")
+            self.do_something(param)
+```
+
+## Plugin Manager
+
+The PluginManager handles plugin lifecycle (`angrmanagement/plugins/plugin_manager.py:29`):
+
+### Discovery and Loading
+
+```python
+class PluginManager:
+    def discover_and_initialize_plugins(self) -> None:
+        # Search for plugins in configured paths
+        for search_dir in Conf.plugin_search_path.split(":"):
+            search_dir = os.path.expanduser(search_dir)
+            
+            # Load plugin descriptions
+            dir_and_descs = load_plugin_descriptions_from_dir(search_dir)
+            for _, desc in dir_and_descs:
+                self.loaded_plugins[desc.shortname] = desc
+            
+            # Activate enabled plugins
+            for plugin_name, desc in self.loaded_plugins.items():
+                if plugin_name in enabled_plugins:
+                    self.activate_plugin_by_name(desc.shortname)
+```
+
+### Plugin Activation
+
+```python
+def activate_plugin(self, shortname: str, plugin_cls: type[BasePlugin]) -> None:
+    # Verify plugin class
+    self.verify_plugin_class(plugin_cls)
+    
+    # Create instance
+    plugin_obj = plugin_cls(self.workspace)
+    
+    # Register with manager
+    self.register_active_plugin(shortname, plugin_obj)
+```
+
+### Event Dispatching
+
+The manager dispatches events to all active plugins (`angrmanagement/plugins/plugin_manager.py:263`):
+
+```python
+def _dispatch(self, func, sensitive, *args):
+    for plugin in list(self.active_plugins.values()):
+        custom = getattr(plugin, func.__name__)
+        if custom.__func__ is not func:
+            try:
+                res = custom(*args)
+            except Exception as e:
+                self._handle_error(plugin, func, sensitive, e)
+            else:
+                yield res
+```
+
+## Plugin Locations
+
+Plugins can be loaded from:
+
+1. **Built-in plugins**: `angrmanagement/plugins/`
+2. **User plugins**: `~/.local/share/angr-management/plugins/`
+3. **Custom paths**: Configured via `Conf.plugin_search_path`
+
+## Built-in Plugins
+
+angr Management includes several built-in plugins:
+
+<AccordionGroup>
+  <Accordion title="BinSync">
+    Collaborative reverse engineering with real-time synchronization
+  </Accordion>
+  
+  <Accordion title="Coverage Viewer">
+    Visualize code coverage from dynamic analysis
+  </Accordion>
+  
+  <Accordion title="Trace Viewer">
+    Analyze execution traces from AFL, QEMU, and other sources
+  </Accordion>
+  
+  <Accordion title="Dependency Viewer">
+    Display function dependencies and call graphs
+  </Accordion>
+  
+  <Accordion title="Source Viewer">
+    View source code alongside disassembly (when available)
+  </Accordion>
+  
+  <Accordion title="Value Search">
+    Search for specific values in memory and code
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Warning>
+  Follow these guidelines for stable plugins:
+  
+  - **Error handling**: Wrap plugin code in try-except blocks
+  - **Performance**: Avoid heavy computation in event handlers
+  - **Memory**: Clean up resources in `teardown()`
+  - **Thread safety**: Use GUI thread for UI updates
+  - **Compatibility**: Test with different angr versions
+</Warning>
+
+### Thread Safety
+
+```python
+from angrmanagement.logic.threads import gui_thread_schedule_async
+
+class MyPlugin(BasePlugin):
+    def background_task(self):
+        # Run in background thread
+        result = expensive_computation()
+        
+        # Update UI on GUI thread
+        gui_thread_schedule_async(
+            self.update_ui,
+            args=(result,)
+        )
+    
+    def update_ui(self, result):
+        # Safe to update UI here
+        self.workspace.log(f"Result: {result}")
+```
+
+## Debugging Plugins
+
+Enable plugin logging:
+
+```python
+import logging
+
+log = logging.getLogger(__name__)
+
+class MyPlugin(BasePlugin):
+    def __init__(self, workspace):
+        super().__init__(workspace)
+        log.info("Plugin initialized")
+    
+    def my_method(self):
+        log.debug("Method called")
+        try:
+            # Plugin logic
+            pass
+        except Exception as e:
+            log.exception("Error in plugin")
+```
+
+## Example: Complete Plugin
+
+Here's a complete plugin example:
+
+```python
+import logging
+from PySide6.QtWidgets import QLabel
+from PySide6.QtGui import QColor
+from angrmanagement.plugins import BasePlugin
+from angrmanagement.ui.workspace import Workspace
+
+log = logging.getLogger(__name__)
+
+class ComplexityAnalyzer(BasePlugin):
+    DISPLAY_NAME = "Complexity Analyzer"
+    REQUIRE_WORKSPACE = True
+    MENU_BUTTONS = ["Calculate Complexity"]
+    FUNC_COLUMNS = ["Cyclomatic Complexity"]
+    
+    def __init__(self, workspace: Workspace) -> None:
+        super().__init__(workspace)
+        self.complexity_cache = {}
+        log.info("Complexity Analyzer loaded")
+    
+    def teardown(self) -> None:
+        self.complexity_cache.clear()
+    
+    def handle_click_menu(self, idx: int) -> None:
+        if idx == 0:
+            self.calculate_all_complexity()
+    
+    def calculate_all_complexity(self):
+        project = self.workspace.main_instance.project.am_obj
+        for addr, func in project.kb.functions.items():
+            complexity = self.calculate_complexity(func)
+            self.complexity_cache[addr] = complexity
+        self.workspace.log("Complexity calculation complete")
+    
+    def calculate_complexity(self, func):
+        # Cyclomatic complexity = edges - nodes + 2
+        if not func.graph:
+            return 1
+        edges = len(func.graph.edges())
+        nodes = len(func.graph.nodes())
+        return edges - nodes + 2
+    
+    def extract_func_column(self, func, idx: int):
+        if idx == 0:
+            complexity = self.complexity_cache.get(
+                func.addr,
+                self.calculate_complexity(func)
+            )
+            return complexity, str(complexity)
+        return 0, ""
+    
+    def color_func(self, func):
+        complexity = self.complexity_cache.get(func.addr)
+        if complexity is None:
+            return None
+        
+        # Color by complexity
+        if complexity > 20:
+            return QColor(255, 0, 0)  # High complexity: red
+        elif complexity > 10:
+            return QColor(255, 165, 0)  # Medium: orange
+        return None
+    
+    def status_bar_permanent_widgets(self):
+        self.status_label = QLabel("Complexity: N/A")
+        yield self.status_label
+    
+    def angrdb_store_entries(self):
+        import json
+        yield ("complexity_cache", json.dumps(self.complexity_cache))
+    
+    def angrdb_load_entry(self, key: str, value: str):
+        import json
+        if key == "complexity_cache":
+            self.complexity_cache = json.loads(value)
+```
+
+## See Also
+
+- [Plugin Development](/development/plugin-system) - Detailed plugin development
+- [Collaborative Analysis](/features/collaborative-analysis) - BinSync plugin
+- [Plugin API Reference](/reference/plugins) - Complete plugin API documentation

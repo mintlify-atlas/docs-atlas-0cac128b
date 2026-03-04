@@ -1,0 +1,153 @@
+---
+title: Introduction
+description: Learn about angr Management, a cross-platform GUI for binary analysis powered by the angr platform
+---
+
+## What is angr Management?
+
+angr Management is a cross-platform, open-source, graphical binary analysis tool powered by the [angr](https://angr.io) binary analysis platform. It provides a comprehensive GUI environment for reverse engineering, vulnerability research, and binary program analysis.
+
+<Note>
+  angr Management combines the power of angr's advanced binary analysis capabilities with an intuitive graphical interface, making complex analysis tasks accessible and efficient.
+</Note>
+
+## Key Features
+
+angr Management offers a rich set of features for binary analysis:
+
+### Multi-Architecture Support
+
+- Supports numerous architectures including x86, x86-64, ARM, MIPS, PowerPC, and more
+- Cross-platform compatibility (Windows, macOS, Linux)
+- Handles multiple binary formats through the CLE loader
+
+### Interactive Disassembly
+
+- **Graph View**: Control flow graph visualization with interactive navigation
+- **Linear View**: Traditional linear disassembly display
+- Assembly code analysis with cross-references (XREFs)
+- Interactive patching and binary modification
+
+### Advanced Decompilation
+
+- Customizable decompiler with multiple optimization levels
+- Interactive pseudocode editing and variable renaming
+- Type inference and reconstruction
+- Synchronized views between assembly and pseudocode
+
+### Analysis Capabilities
+
+- Control Flow Graph (CFG) generation and analysis
+- Data flow analysis and dependency tracking
+- Symbolic execution through integrated console
+- Function signature detection (FLIRT signatures)
+- String analysis and memory visualization
+
+### Extensibility
+
+- Plugin system for custom functionality
+- Built-in plugins for various analysis tasks:
+  - **BinSync**: Collaborative reverse engineering
+  - **Source Viewer**: Source code integration
+  - **Trace Viewer**: Dynamic analysis trace visualization
+  - **Coverage**: Code coverage analysis
+  - **Value Search**: Memory value searching
+
+### Collaboration
+
+- Built-in support for collaborative analysis through BinSync
+- Share analysis results and annotations across teams
+- angr:// URL protocol for sharing analysis artifacts
+
+## Who Should Use angr Management?
+
+angr Management is designed for:
+
+<CardGroup cols={2}>
+  <Card title="Reverse Engineers" icon="magnifying-glass">
+    Analyze and understand compiled binaries, recover algorithms, and identify vulnerabilities
+  </Card>
+  
+  <Card title="Security Researchers" icon="shield">
+    Perform vulnerability research, exploit development, and malware analysis
+  </Card>
+  
+  <Card title="CTF Players" icon="flag">
+    Solve binary exploitation and reverse engineering challenges efficiently
+  </Card>
+  
+  <Card title="Developers" icon="code">
+    Debug compiled code, understand third-party libraries, and verify compilation results
+  </Card>
+</CardGroup>
+
+## Core Components
+
+angr Management is built on several key components:
+
+```python
+# Core dependencies from pyproject.toml
+"angr[angrDB]==9.2.205.dev0"  # The angr binary analysis framework
+"cle==9.2.205.dev0"            # Binary loader
+"PySide6-Essentials>=6.4.2"    # Qt GUI framework
+"binsync==5.7.11"              # Collaboration support
+```
+
+### Built-in Views
+
+The workspace includes multiple synchronized views:
+
+- **Functions View**: List and navigate all discovered functions
+- **Disassembly View**: Interactive assembly code display
+- **Pseudocode View**: Decompiled high-level code
+- **Hex View**: Raw binary data editor
+- **Console View**: iPython terminal for angr scripting
+- **Strings View**: All strings discovered in the binary
+- **Patches View**: Track binary modifications
+- **Traces View**: Dynamic execution traces
+- **Breakpoints View**: Manage breakpoints for debugging
+
+## Quick Navigation Features
+
+<Steps>
+  <Step title="Command Palette">
+    Press `Ctrl+Shift+P` to open the Command Palette for quick access to all actions
+  </Step>
+  
+  <Step title="Goto Anything">
+    Double-tap `Shift` to open fuzzy search and quickly jump to functions
+  </Step>
+  
+  <Step title="View Management">
+    Drag and drop views to customize your workspace layout
+  </Step>
+</Steps>
+
+## Architecture
+
+angr Management follows a modular architecture:
+
+```
+angrmanagement/
+├── ui/           # User interface components
+│   ├── views/    # Different analysis views
+│   ├── dialogs/  # Interactive dialogs
+│   ├── widgets/  # Custom Qt widgets
+│   └── menus/    # Context menus and toolbars
+├── logic/        # Core analysis logic
+├── data/         # Data models and jobs
+├── plugins/      # Plugin system and built-in plugins
+└── config/       # Configuration management
+```
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Get angr Management installed on your system
+  </Card>
+  
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Load your first binary and start analyzing
+  </Card>
+</CardGroup>

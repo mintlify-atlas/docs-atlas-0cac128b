@@ -1,0 +1,576 @@
+---
+title: Views and Widgets
+description: Creating custom views and extending the angr Management UI
+---
+
+## Overview
+
+Views are the main UI containers in angr Management. They are dockable panels that display different aspects of the binary analysis. The view system is managed by `ViewManager` and uses Qt Advanced Docking System (QtAds).
+
+## View Architecture
+
+### View Hierarchy
+
+All views inherit from one of these base classes:
+
+```
+BaseView (QFrame)
+├── InstanceView
+│   ├── SynchronizedInstanceView
+│   └── FunctionView
+│       └── SynchronizedFunctionView
+└── SynchronizedView
+```
+
+## Creating Custom Views
+
+### BaseView
+
+The foundation for all views:
+
+```python
+from angrmanagement.ui.views.view import BaseView
+from PySide6.QtWidgets import QVBoxLayout, QLabel
+
+class CustomView(BaseView):
+    def __init__(self, workspace, default_docking_position):
+        super().__init__(
+            category="custom",
+            workspace=workspace,
+            default_docking_position=default_docking_position
+        )
+        
+        self.base_caption = "Custom View"
+        self.width_hint = 400
+        self.height_hint = 300
+        
+        self._init_widgets()
+    
+    def _init_widgets(self):
+        layout = QVBoxLayout()
+        label = QLabel("Custom View Content")
+        layout.addWidget(label)
+        self.setLayout(layout)
+    
+    def refresh(self):
+        """Called when view needs to update display"""
+        pass
+    
+    def reload(self):
+        """Called when view needs to reload all data"""
+        pass
+```
+
+**BaseView Properties:**
+- `category` - View category (e.g., "disassembly", "functions")
+- `workspace` - Reference to workspace
+- `default_docking_position` - "left", "right", "top", "bottom", "center"
+- `base_caption` - Display name
+- `index` - View instance number (auto-assigned)
+- `icon` - View icon (auto-loaded from category)
+
+### InstanceView
+
+Views associated with a specific analysis instance:
+
+```python
+from angrmanagement.ui.views.view import InstanceView
+
+class CustomInstanceView(InstanceView):
+    def __init__(self, workspace, default_docking_position, instance):
+        super().__init__(
+            category="custom",
+            workspace=workspace,
+            default_docking_position=default_docking_position,
+            instance=instance
+        )
+        
+        self.base_caption = "Custom Instance View"
+        self._init_widgets()
+    
+    def on_focused(self):
+        """Called when view receives focus"""
+        super().on_focused()
+        # Custom focus handling
+    
+    def _init_widgets(self):
+        # Access instance data
+        project = self.instance.project
+        cfg = self.instance.cfg
+        # Build UI...
+```
+
+**Instance Properties:**
+- `self.instance.project` - angr Project
+- `self.instance.cfg` - Control Flow Graph
+- `self.instance.kb` - Knowledge Base
+- `self.instance.states` - Simulation states
+
+### FunctionView
+
+Views that focus on a specific function:
+
+```python
+from angrmanagement.ui.views.view import FunctionView
+
+class CustomFunctionView(FunctionView):
+    def __init__(self, workspace, default_docking_position, instance):
+        super().__init__(
+            category="custom-function",
+            workspace=workspace,
+            default_docking_position=default_docking_position,
+            instance=instance
+        )
+        
+        self.base_caption = "Custom Function View"
+        
+        # Subscribe to function changes
+        self._function.am_subscribe(self._on_function_changed)
+        
+        self._init_widgets()
+    
+    def _on_function_changed(self, **kwargs):
+        """Called when current function changes"""
+        func = self.function
+        if func is not None:
+            self._update_for_function(func)
+    
+    def _update_for_function(self, func):
+        # Update view with new function
+        print(f"Function: {func.name} at {hex(func.addr)}")
+        print(f"Blocks: {len(list(func.blocks))}")
+```
+
+## View Synchronization
+
+### SynchronizedView
+
+Enables cursor and highlight synchronization between views:
+
+```python
+from angrmanagement.ui.views.view import SynchronizedInstanceView
+
+class SyncedView(SynchronizedInstanceView):
+    def __init__(self, workspace, default_docking_position, instance):
+        super().__init__(
+            category="synced",
+            workspace=workspace,
+            default_docking_position=default_docking_position,
+            instance=instance
+        )
+        
+        self._init_widgets()
+    
+    def jump_to(self, address):
+        """Navigate to address (required for sync)"""
+        # Implement navigation logic
+        print(f"Jumping to {hex(address)}")
+    
+    def on_synchronized_cursor_address_changed(self):
+        """Called when synchronized cursor moves"""
+        addr = self.sync_state.cursor_address
+        if addr is not None:
+            self.jump_to(addr)
+    
+    def _on_cursor_changed(self, new_address):
+        """Call when local cursor changes"""
+        # Update synchronized state
+        self.set_synchronized_cursor_address(new_address)
+```
+
+**Synchronization Methods:**
+- `set_synchronized_cursor_address(addr)` - Update shared cursor
+- `set_synchronized_highlight_regions(regions)` - Share highlights
+- `sync_with_state_object(state)` - Sync with another view
+- `desync()` - Stop synchronization
+
+## View Manager
+
+The `ViewManager` handles view lifecycle and docking.
+
+### Adding Views
+
+```python
+# In workspace or plugin
+from angrmanagement.ui.views.view import BaseView
+
+class MyCustomView(BaseView):
+    # ... implementation ...
+    pass
+
+# Add view to workspace
+custom_view = MyCustomView(
+    workspace=workspace,
+    default_docking_position="right"
+)
+workspace.view_manager.add_view(custom_view)
+```
+
+### View Manager Methods
+
+```python
+# Access view manager
+view_manager = workspace.view_manager
+
+# Get views
+all_views = view_manager.views
+by_category = view_manager.views_by_category["disassembly"]
+most_recent = view_manager.most_recently_focused_view
+current_tab = view_manager.current_tab
+
+# Manipulate views
+view_manager.raise_view(view)  # Bring to front
+view_manager.remove_view(view)  # Remove view
+
+# Find views
+first_disasm = view_manager.first_view_in_category("disassembly")
+current_disasm = view_manager.current_view_in_category("disassembly")
+
+# Navigate tabs
+view_manager.next_tab()
+view_manager.previous_tab()
+```
+
+### Docking Positions
+
+```python
+class ViewManager:
+    DOCKING_POSITIONS = {
+        "center": QtAds.CenterDockWidgetArea,
+        "left": QtAds.LeftDockWidgetArea,
+        "right": QtAds.RightDockWidgetArea,
+        "top": QtAds.TopDockWidgetArea,
+        "bottom": QtAds.BottomDockWidgetArea,
+    }
+```
+
+## Built-in Views
+
+angr Management includes several built-in views you can reference:
+
+### DisassemblyView
+
+```python
+from angrmanagement.ui.views import DisassemblyView
+
+class DisassemblyView(SynchronizedFunctionView):
+    """Main disassembly view with graph and linear modes"""
+    
+    @property
+    def disassembly_level(self):
+        return self._disassembly_level  # MachineCode or AIL
+    
+    def jump_to(self, address, use_animation=False):
+        # Navigate to address
+        pass
+```
+
+Location: `angrmanagement/ui/views/disassembly_view.py`
+
+### FunctionsView
+
+Displays function table:
+
+```python
+from angrmanagement.ui.views import FunctionsView
+```
+
+Location: `angrmanagement/ui/views/functions_view.py`
+
+### Other Built-in Views
+
+- **HexView** - Hex editor (`hex_view.py`)
+- **StringsView** - String references (`strings_view.py`)
+- **ConsoleView** - IPython console (`console_view.py`)
+- **RegistersView** - Register values (`registers_view.py`)
+- **StackView** - Stack contents (`stack_view.py`)
+- **StatesView** - Simulation states (`states_view.py`)
+- **BreakpointsView** - Breakpoint list (`breakpoints_view.py`)
+- **PatchesView** - Binary patches (`patches_view.py`)
+- **ProximityView** - Proximity graph (`proximity_view.py`)
+
+All located in: `angrmanagement/ui/views/`
+
+## Complex Widget Example
+
+Creating a custom widget for use in views:
+
+```python
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableView
+from PySide6.QtCore import QAbstractTableModel, Qt
+
+class CustomTableModel(QAbstractTableModel):
+    def __init__(self, data, parent=None):
+        super().__init__(parent)
+        self._data = data
+    
+    def rowCount(self, parent=None):
+        return len(self._data)
+    
+    def columnCount(self, parent=None):
+        return 2
+    
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
+            row = index.row()
+            col = index.column()
+            return self._data[row][col]
+        return None
+
+class CustomWidget(QWidget):
+    def __init__(self, instance, parent=None):
+        super().__init__(parent)
+        self.instance = instance
+        
+        layout = QVBoxLayout()
+        
+        # Create table
+        self.table = QTableView()
+        self.model = CustomTableModel([])
+        self.table.setModel(self.model)
+        
+        layout.addWidget(self.table)
+        self.setLayout(layout)
+    
+    def update_data(self, new_data):
+        self.model._data = new_data
+        self.model.layoutChanged.emit()
+```
+
+## View State Management
+
+### Publishing View State
+
+```python
+from angrmanagement.ui.views.view import ViewState, InstanceView
+
+class MyViewState(ViewState):
+    def __init__(self, cursors=None, custom_data=None):
+        super().__init__(cursors)
+        self.custom_data = custom_data
+
+class MyView(InstanceView):
+    def __init__(self, workspace, default_docking_position, instance):
+        super().__init__(
+            category="myview",
+            workspace=workspace,
+            default_docking_position=default_docking_position,
+            instance=instance
+        )
+        self.published_view_state = MyViewState()
+    
+    def on_focused(self):
+        """Update published state when focused"""
+        super().on_focused()
+        self.published_view_state.custom_data = self._get_current_data()
+        self.notify_view_state_updated()
+```
+
+## Event Handling
+
+### Main Window Events
+
+```python
+class MyView(BaseView):
+    def mainWindowInitializedEvent(self):
+        """Called after main window finishes initialization"""
+        # Safe to access all UI components
+        pass
+    
+    def closeEvent(self, event):
+        """Called when view is closing"""
+        # Cleanup resources
+        super().closeEvent(event)
+        event.accept()
+```
+
+### Context Menus
+
+```python
+from PySide6.QtWidgets import QMenu
+from PySide6.QtGui import QAction
+
+class MyView(BaseView):
+    def contextMenuEvent(self, event):
+        menu = QMenu(self)
+        
+        action1 = QAction("Action 1", self)
+        action1.triggered.connect(self._on_action1)
+        menu.addAction(action1)
+        
+        action2 = QAction("Action 2", self)
+        action2.triggered.connect(self._on_action2)
+        menu.addAction(action2)
+        
+        menu.exec_(event.globalPos())
+    
+    def _on_action1(self):
+        print("Action 1 triggered")
+    
+    def _on_action2(self):
+        print("Action 2 triggered")
+```
+
+## Integration with Workspace
+
+### Accessing Workspace Components
+
+```python
+class MyView(InstanceView):
+    def _init_widgets(self):
+        # Access workspace components
+        workspace = self.workspace
+        
+        # Plugin system
+        plugins = workspace.plugins
+        
+        # View manager
+        view_manager = workspace.view_manager
+        
+        # Job manager
+        job_manager = workspace.job_manager
+        
+        # Instance data
+        project = self.instance.project
+        cfg = self.instance.cfg
+        kb = self.instance.kb
+```
+
+### Interacting with Other Views
+
+```python
+def _jump_to_address_in_disassembly(self, address):
+    # Get disassembly view
+    disasm_view = self.workspace.view_manager.first_view_in_category("disassembly")
+    
+    if disasm_view:
+        # Bring to front and navigate
+        disasm_view.jump_to(address)
+        self.workspace.view_manager.raise_view(disasm_view)
+```
+
+## Best Practices
+
+### 1. Proper Initialization
+
+```python
+class MyView(InstanceView):
+    def __init__(self, workspace, default_docking_position, instance):
+        super().__init__(category, workspace, default_docking_position, instance)
+        
+        # Set caption and hints BEFORE _init_widgets
+        self.base_caption = "My View"
+        self.width_hint = 600
+        self.height_hint = 400
+        
+        # Initialize widgets
+        self._init_widgets()
+        
+        # Setup connections
+        self._init_connections()
+```
+
+### 2. Resource Cleanup
+
+```python
+def closeEvent(self, event):
+    # Unsubscribe from events
+    if hasattr(self, '_function'):
+        self._function.am_unsubscribe(self._on_function_changed)
+    
+    # Clear references
+    self.instance = None
+    
+    # Call parent
+    super().closeEvent(event)
+    event.accept()
+```
+
+### 3. Thread Safety
+
+```python
+from angrmanagement.logic.threads import gui_thread_schedule_async
+
+def _background_computation(self):
+    # Heavy computation
+    result = expensive_operation()
+    
+    # Update UI on GUI thread
+    gui_thread_schedule_async(self._update_ui, args=(result,))
+
+def _update_ui(self, result):
+    # Safe to update UI here
+    self.label.setText(str(result))
+```
+
+## Complete View Example
+
+```python
+from angrmanagement.ui.views.view import InstanceView
+from PySide6.QtWidgets import QVBoxLayout, QTextEdit
+from PySide6.QtCore import Qt
+
+class BlockInfoView(InstanceView):
+    """Display information about selected blocks"""
+    
+    def __init__(self, workspace, default_docking_position, instance):
+        super().__init__(
+            category="block-info",
+            workspace=workspace,
+            default_docking_position=default_docking_position,
+            instance=instance
+        )
+        
+        self.base_caption = "Block Info"
+        self.width_hint = 300
+        self.height_hint = 400
+        
+        self._text_edit = None
+        self._current_addr = None
+        
+        self._init_widgets()
+    
+    def _init_widgets(self):
+        layout = QVBoxLayout()
+        
+        self._text_edit = QTextEdit()
+        self._text_edit.setReadOnly(True)
+        layout.addWidget(self._text_edit)
+        
+        self.setLayout(layout)
+    
+    def show_block(self, addr):
+        """Display information for block at address"""
+        self._current_addr = addr
+        
+        # Get block from CFG
+        cfg = self.instance.cfg
+        if cfg is None:
+            self._text_edit.setText("No CFG available")
+            return
+        
+        node = cfg.get_any_node(addr)
+        if node is None:
+            self._text_edit.setText(f"No block at {hex(addr)}")
+            return
+        
+        # Format block info
+        info = f"""Block Information
+        
+Address: {hex(node.addr)}
+Size: {node.size} bytes
+Successors: {len(node.successors)}
+Predecessors: {len(node.predecessors)}
+"""
+        self._text_edit.setText(info)
+    
+    def refresh(self):
+        if self._current_addr is not None:
+            self.show_block(self._current_addr)
+```
+
+## Next Steps
+
+- Customize appearance with [Theming](/development/theming)
+- Learn about [UI Components](/development/ui-components)
+- Explore [Plugin Development](/development/plugin-system)

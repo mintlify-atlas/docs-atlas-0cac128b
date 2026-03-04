@@ -1,0 +1,317 @@
+---
+title: Analysis Capabilities
+description: Comprehensive analysis features for binary reverse engineering
+---
+
+angr Management provides a powerful suite of automated analysis capabilities to help you understand binary programs. These analyses run in the background and progressively build knowledge about the program's structure and behavior.
+
+## Analysis Manager
+
+The Analysis Manager (`angrmanagement/logic/analysis_manager.py:26`) orchestrates all automated analyses and manages their execution through the job system.
+
+### Available Analyses
+
+angr Management supports the following analysis types:
+
+<CardGroup cols={2}>
+  <Card title="CFG Recovery" icon="project-diagram">
+    Control-Flow Graph generation to understand program structure
+  </Card>
+  <Card title="Variable Recovery" icon="code">
+    Identify local variables and function parameters
+  </Card>
+  <Card title="Calling Convention Analysis" icon="phone">
+    Recover function signatures and calling conventions
+  </Card>
+  <Card title="FLIRT Signatures" icon="fingerprint">
+    Recognize library functions using FLIRT signatures
+  </Card>
+  <Card title="String Deobfuscation" icon="text">
+    Identify and decode obfuscated strings
+  </Card>
+  <Card title="API Deobfuscation" icon="api">
+    Detect obfuscated API calls
+  </Card>
+</CardGroup>
+
+## Control-Flow Graph (CFG) Recovery
+
+CFG analysis builds a graph representation of the program's control flow, identifying basic blocks, functions, and their relationships.
+
+### Configuration Options
+
+CFG analysis provides extensive configuration (`angrmanagement/data/jobs/cfg_generation.py:38`):
+
+```python
+class CFGAnalysisConfiguration(AnalysisConfiguration):
+    def __init__(self, instance: Instance) -> None:
+        super().__init__(instance)
+        self.name = "cfg"
+        self.display_name = "Control-Flow Graph Recovery"
+        self.options = {
+            "resolve_indirect_jumps": True,
+            "data_references": True,
+            "cross_references": False,
+            "skip_unmapped_addrs": True,
+            "exclude_sparse_regions": True,
+        }
+```
+
+### Scanning Modes
+
+CFG recovery supports three scanning modes (`angrmanagement/data/jobs/cfg_generation.py:28`):
+
+- **Disabled**: Standard CFG recovery without additional scanning
+- **Smart Scan**: Intelligently scan to maximize identified code blocks
+- **Complete Scan**: Exhaustive scanning of all possible code regions
+
+### Running CFG Analysis
+
+```python
+# Trigger CFG generation programmatically
+analysis_manager.generate_cfg(cfg_args={
+    "resolve_indirect_jumps": True,
+    "data_references": True,
+    "normalize": True
+})
+```
+
+The CFG job (`angrmanagement/data/jobs/cfg_generation.py:156`) provides progress callbacks and incremental updates:
+
+```python
+class CFGGenerationJob(InstanceJob):
+    def run(self, ctx: JobContext):
+        cfg = self.instance.project.analyses.CFG(
+            progress_callback=self._progress_callback,
+            low_priority=True,
+            **self.cfg_args,
+        )
+        return cfg.model, cfb
+```
+
+## Variable Recovery
+
+Variable recovery identifies local variables, function parameters, and their types through static analysis.
+
+### Configuration
+
+Variable recovery can be configured for different binary sizes (`angrmanagement/data/jobs/variable_recovery.py:17`):
+
+```python
+class VariableRecoveryConfiguration(AnalysisConfiguration):
+    SMALL_BINARY_SIZE = 65536
+    MEDIUM_BINARY_SIZE = 400000
+    
+    def __init__(self, instance: Instance) -> None:
+        super().__init__(instance)
+        self.name = "varec"
+        self.display_name = "Recover Variables on All Functions"
+        # Automatically enabled for small/medium binaries
+        self.enabled = self.get_main_obj_size() <= self.MEDIUM_BINARY_SIZE
+```
+
+### Parallel Processing
+
+Variable recovery supports multi-core processing:
+
+- **Workers**: Number of parallel workers (0 to disable)
+- Automatically defaults to available cores minus one
+- Optimized for different platforms (Windows, macOS, Linux)
+
+### Function Prioritization
+
+You can prioritize analysis of specific functions (`angrmanagement/data/jobs/variable_recovery.py:105`):
+
+```python
+job = VariableRecoveryJob(instance, on_variable_recovered=callback)
+job.prioritize_function(func_addr)  # Prioritize a specific function
+```
+
+## Calling Convention Recovery
+
+Calling convention analysis identifies how functions receive parameters and return values.
+
+### Features
+
+- Automatic detection of calling conventions (cdecl, stdcall, fastcall, etc.)
+- Recovery of function prototypes
+- Integration with variable recovery
+- Function prioritization support
+
+### Configuration
+
+Configured through `CallingConventionRecoveryConfiguration` (`angrmanagement/data/jobs/calling_convention_recovery.py`):
+
+```python
+conf["cca"].enabled = True
+job = CallingConventionRecoveryJob(
+    instance,
+    on_cc_recovered=self._on_cc_recovered
+)
+```
+
+## Deobfuscation Analyses
+
+angr Management includes specialized analyses for handling obfuscated code.
+
+### API Deobfuscation
+
+Detects and deobfuscates hidden API calls (`angrmanagement/data/jobs/deobfuscation.py:16`):
+
+```python
+class APIDeobfuscationJob(InstanceJob):
+    def run(self, ctx: JobContext) -> None:
+        self.instance.project.analyses[APIObfuscationFinder].prep(
+            progress_callback=ctx.set_progress
+        )(variable_kb=self.instance.pseudocode_variable_kb)
+```
+
+### String Deobfuscation
+
+Identifies and decodes obfuscated strings (`angrmanagement/data/jobs/deobfuscation.py:29`):
+
+```python
+class StringDeobfuscationJob(InstanceJob):
+    def run(self, ctx: JobContext) -> None:
+        self.instance.project.analyses[StringObfuscationFinder].prep(
+            progress_callback=ctx.set_progress
+        )()
+```
+
+## FLIRT Signature Recognition
+
+FLIRT (Fast Library Identification and Recognition Technology) analysis identifies library functions by matching against signature databases.
+
+### Features
+
+- Automatic recognition of standard library functions
+- Prototype recovery for matched functions
+- Reduces analysis time by skipping known library code
+
+### Usage
+
+```python
+if conf["flirt"].enabled:
+    self._schedule_job(FlirtSignatureRecognitionJob(instance))
+    self._schedule_job(PrototypeFindingJob(instance))
+```
+
+## Code Tagging
+
+Code tagging analysis categorizes and labels code regions for better organization:
+
+```python
+if conf["code_tagging"].enabled:
+    self._schedule_job(
+        CodeTaggingJob(instance, on_finish=self._on_functions_tagged)
+    )
+```
+
+## Analysis Workflow
+
+The typical analysis workflow (`angrmanagement/logic/analysis_manager.py:59`):
+
+```python
+def run_analysis(self) -> None:
+    instance = self.workspace.main_instance
+    conf = instance.analysis_configuration
+
+    # 1. Generate CFG first
+    if conf["cfg"].enabled:
+        job = CFGGenerationJob(instance, on_finish=self._on_cfg_generated)
+        self._schedule_job(job)
+
+    # 2. Run FLIRT recognition
+    if conf["flirt"].enabled:
+        self._schedule_job(FlirtSignatureRecognitionJob(instance))
+
+    # 3. Deobfuscation passes
+    if conf["api_deobfuscation"].enabled:
+        self._schedule_job(APIDeobfuscationJob(instance))
+    
+    if conf["string_deobfuscation"].enabled:
+        self._schedule_job(StringDeobfuscationJob(instance))
+
+    # 4. Recover calling conventions and variables
+    if conf["cca"].enabled:
+        job = CallingConventionRecoveryJob(instance)
+        self._schedule_job(job)
+    
+    if conf["varec"].enabled:
+        job = VariableRecoveryJob(instance)
+        self._schedule_job(job)
+```
+
+## Job System
+
+All analyses run as background jobs managed by the JobManager (`angrmanagement/logic/jobmanager.py`):
+
+- **Non-blocking**: Analyses run in background threads
+- **Progress tracking**: Real-time progress updates
+- **Cancellable**: Jobs can be cancelled mid-execution
+- **Prioritization**: Important functions can be analyzed first
+
+## Analysis Events
+
+The Analysis Manager emits signals when analyses complete (`angrmanagement/logic/analysis_manager.py:31`):
+
+```python
+class AnalysisManager(QObject):
+    cfg_generated = Signal()
+    cc_recovered = Signal(object)  # func_addr
+    functions_tagged = Signal()
+    variable_recovered = Signal(object)  # func_addr
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="For Small Binaries">
+    - Enable all analyses including variable recovery
+    - Use single-threaded mode to avoid overhead
+    - Enable cross-reference analysis for detailed results
+  </Accordion>
+
+  <Accordion title="For Large Binaries">
+    - Disable automatic variable recovery
+    - Use parallel workers for faster processing
+    - Enable Smart Scan mode for CFG
+    - Manually analyze individual functions as needed
+  </Accordion>
+
+  <Accordion title="For Obfuscated Code">
+    - Enable deobfuscation analyses
+    - Use Complete Scan mode for CFG
+    - Disable function prologue detection if heavily obfuscated
+  </Accordion>
+</AccordionGroup>
+
+## Custom Analysis Configuration
+
+You can create custom analysis configurations by subclassing `AnalysisConfiguration`:
+
+```python
+from angrmanagement.data.analysis_options import (
+    AnalysisConfiguration,
+    BoolAnalysisOption,
+    IntAnalysisOption
+)
+
+class CustomAnalysisConfiguration(AnalysisConfiguration):
+    def __init__(self, instance: Instance) -> None:
+        super().__init__(instance)
+        self.name = "custom"
+        self.display_name = "Custom Analysis"
+        self.description = "My custom analysis"
+        self.enabled = True
+        self.options = {
+            "option1": BoolAnalysisOption("option1", "Enable feature", True),
+            "option2": IntAnalysisOption("option2", "Threshold", 100)
+        }
+```
+
+## See Also
+
+- [Plugin System](/features/plugins) - Extend analyses with custom plugins
+- [Architecture Overview](/development/architecture) - Understanding the architecture
+- [Development Setup](/development/setup) - Set up for development

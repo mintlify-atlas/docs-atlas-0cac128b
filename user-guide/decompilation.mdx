@@ -1,0 +1,454 @@
+---
+title: Decompilation
+description: Working with pseudocode in the Pseudocode View
+---
+
+The Pseudocode View displays decompiled C-like code generated from binary assembly, making it easier to understand program logic and structure.
+
+## Overview
+
+angr Management's decompiler transforms assembly code into readable pseudocode:
+
+<CardGroup cols={2}>
+  <Card title="From This" icon="microchip">
+    ```asm
+    push rbp
+    mov rbp, rsp
+    sub rsp, 0x10
+    mov [rbp-4], edi
+    ```
+  </Card>
+  <Card title="To This" icon="code">
+    ```c
+    int main(int argc) {
+        int local_4 = argc;
+        ...
+    ```
+  </Card>
+</CardGroup>
+
+## Opening the Pseudocode View
+
+<Tabs>
+  <Tab title="Quick Access">
+    - Press `Tab` while in disassembly view
+    - View → Pseudocode
+    - Right-click function → "Decompile"
+  </Tab>
+  <Tab title="Command Palette">
+    1. Press `Ctrl+Shift+P`
+    2. Type "View: Pseudocode"
+    3. Press Enter
+  </Tab>
+  <Tab title="First Time">
+    When you decompile for the first time:
+    1. angr runs variable recovery
+    2. Generates control flow recovery
+    3. Produces structured C code
+    4. Results are cached for future viewing
+  </Tab>
+</Tabs>
+
+## Navigation
+
+### Within Pseudocode
+
+<Steps>
+  <Step title="Scroll">
+    Use mouse wheel or arrow keys to navigate
+  </Step>
+  <Step title="Jump to Function">
+    Double-click on function calls to decompile that function
+  </Step>
+  <Step title="Jump to Address">
+    Double-click on constants that represent addresses
+  </Step>
+  <Step title="Jump to Variable">
+    Double-click on memory-backed variables to jump to their address
+  </Step>
+</Steps>
+
+### Navigation History
+
+The pseudocode view maintains its own navigation history:
+
+- **Back**: Press `Esc` or use the back button
+- **Forward**: Use the forward button
+- **History dropdown**: Click the dropdown to see recent functions
+
+### Switching to Disassembly
+
+Press `Tab` to switch back to disassembly at the current instruction.
+
+## Syntax Highlighting
+
+Code elements are color-coded for readability:
+
+| Element | Default Color | Example |
+|---------|--------------|--------|
+| **Keywords** | Blue | `if`, `while`, `return` |
+| **Functions** | Blue | `sub_401000()` |
+| **Library Functions** | Magenta | `printf()` |
+| **Types** | Blue | `int`, `char*` |
+| **Variables** | Black | `local_var_4` |
+| **Global Variables** | Blue | `global_data` |
+| **Comments** | Green | `// comment` |
+| **Strings** | Green | `"hello"` |
+| **Labels** | Blue | `label_1:` |
+
+<Tip>
+Colors are customizable in **File → Preferences → Theme**.
+</Tip>
+
+## Code Navigation Features
+
+### Cursor Highlighting
+
+When you click on a code element:
+
+- **All references** to that element are highlighted
+- **Variable uses** are shown with yellow background
+- **Function calls** show all occurrences
+- **Constants** highlight identical values
+
+### Selection Synchronization
+
+Clicking on code in pseudocode:
+
+1. Highlights the corresponding assembly instruction
+2. Updates synchronized views
+3. Shows the instruction address in the status bar
+
+## Editing and Annotations
+
+### Renaming Variables
+
+<Steps>
+  <Step title="Select Variable">
+    Click on any variable reference
+  </Step>
+  <Step title="Open Rename Dialog">
+    Press `N` or right-click → "Rename"
+  </Step>
+  <Step title="Enter New Name">
+    Type the new variable name
+  </Step>
+  <Step title="Apply">
+    Press Enter - all references update immediately
+  </Step>
+</Steps>
+
+### Renaming Functions
+
+Same process as variables:
+
+1. Click on function name
+2. Press `N` or right-click → "Rename"
+3. Enter new name
+4. All call sites update
+
+### Retyping Variables
+
+Change variable types for better decompilation:
+
+<Accordion title="How to Retype">
+  1. Right-click on variable
+  2. Select "Retype Variable"
+  3. Enter C type (e.g., `char*`, `struct my_struct*`)
+  4. Decompiler regenerates with new type information
+</Accordion>
+
+<Note>
+Retyping variables triggers automatic redecompilation to propagate type changes.
+</Note>
+
+### Comments
+
+Add comments to pseudocode:
+
+1. Right-click on a line
+2. Select "Add Comment"
+3. Type your comment
+4. Comments persist across sessions
+
+## Decompilation Options
+
+Customize decompilation behavior via the options panel:
+
+<Tabs>
+  <Tab title="Display">
+    **Show/Hide Options:**
+    - Decompilation Options panel
+    - Toggle with the options button
+    
+    **Available Settings:**
+    - Variable recovery mode
+    - Optimization passes
+    - Display preferences
+  </Tab>
+  <Tab title="Access">
+    Click the options button (⚙️) in the status bar to show/hide the options panel.
+  </Tab>
+</Tabs>
+
+### Optimization Passes
+
+Select which optimization passes to apply:
+
+<AccordionGroup>
+  <Accordion title="Default Passes">
+    - Dead code elimination
+    - Expression simplification
+    - Copy propagation
+    - Constant folding
+  </Accordion>
+  
+  <Accordion title="Advanced Passes">
+    - Loop structuring
+    - Switch statement recovery
+    - Structure recovery
+    - Goto elimination
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+Disabling optimization passes may result in more verbose but more accurate code.
+</Warning>
+
+### Redecompiling
+
+Force redecompilation with different settings:
+
+1. Modify options in the options panel
+2. Options panel shows "dirty" indicator
+3. Redecompilation occurs automatically
+4. Or manually trigger via Analyze → Decompile
+
+## Multiple Decompilation Flavors
+
+angr can produce different decompilation outputs:
+
+<Tabs>
+  <Tab title="Pseudocode">
+    **Standard C-like output**
+    
+    - Structured control flow
+    - Variable names and types
+    - Optimized for readability
+    
+    **Default flavor**, best for most analysis.
+  </Tab>
+  <Tab title="Source Code">
+    **When available from debug info**
+    
+    - Original source code
+    - Debug symbol mapping
+    - Line number information
+    
+    **Available only for binaries with debug symbols.**
+  </Tab>
+</Tabs>
+
+Switch between flavors:
+- Press `Space` to cycle through available flavors
+- Or use the flavor dropdown in the status bar
+
+## AI-Assisted Decompilation
+
+angr Management can use Large Language Models to improve decompilation:
+
+<Note>
+AI features require configuring an LLM client in **File → Preferences → LLM**.
+</Note>
+
+### Available AI Features
+
+<CardGroup cols={2}>
+  <Card title="Suggest Variable Names" icon="tag">
+    AI analyzes context and suggests meaningful variable names
+  </Card>
+  <Card title="Suggest Function Names" icon="signature">
+    AI infers function purpose and suggests descriptive names
+  </Card>
+  <Card title="Suggest Variable Types" icon="code">
+    AI infers variable types from usage patterns
+  </Card>
+  <Card title="Summarize Function" icon="book">
+    AI generates natural language description of function behavior
+  </Card>
+</CardGroup>
+
+### Using AI Features
+
+**Manual Refinement:**
+
+1. Navigate to **AI** menu
+2. Select desired refinement:
+   - LLM Suggest Variable Names
+   - LLM Suggest Function Name
+   - LLM Suggest Variable Types
+   - LLM Summarize Function
+   - LLM Refine All (runs all improvements)
+3. Wait for AI processing
+4. Review and accept/reject suggestions
+
+**Automatic Refinement:**
+
+Enable in **Preferences → LLM**:
+
+- Auto-rename variables
+- Auto-rename functions
+- Auto-retype variables
+- Auto-summarize functions
+
+<Warning>
+Automatic AI refinement runs on every decompilation and may slow down the process.
+</Warning>
+
+### Function Summaries
+
+When AI summarization is enabled:
+
+1. Function summary appears in a panel above the code
+2. Toggle panel visibility with the summary button
+3. Summaries are cached and persist across sessions
+4. Edit summaries manually if needed
+
+## Advanced Features
+
+### Structure Recovery
+
+angr attempts to recover structure definitions:
+
+```c
+struct mystruct {
+    int field_0;
+    char* field_8;
+    int field_10;
+};
+
+void func(struct mystruct* arg0) {
+    arg0->field_0 = 0;
+    ...
+}
+```
+
+**Improve structure recovery:**
+
+1. Define structures in Types view
+2. Apply types to variables
+3. Retype function parameters
+4. Redecompile with updated type info
+
+### Inline Functions
+
+Control which functions are inlined:
+
+1. Navigate to function in Functions view
+2. Right-click → "Inline in decompilation"
+3. Redecompile calling functions
+4. Inlined function code appears directly in caller
+
+<Tip>
+Inlining small utility functions can make code more readable.
+</Tip>
+
+### Calling Convention Analysis
+
+angr automatically determines calling conventions:
+
+- **Detected conventions** shown in function signatures
+- **Manual override** available in function properties
+- **Custom conventions** can be defined
+
+## Performance Considerations
+
+<CardGroup cols={2}>
+  <Card title="Large Functions" icon="chart-simple">
+    Decompilation time increases with:
+    - Function size
+    - Number of basic blocks
+    - Complexity of control flow
+    
+    **Tip:** Consider disabling some optimization passes for faster results.
+  </Card>
+  <Card title="First Decompilation" icon="clock">
+    Initial decompilation is slower because:
+    - Variable recovery must run
+    - Type analysis is performed
+    - Results are cached afterward
+    
+    **Tip:** Let the first decompilation complete for best results.
+  </Card>
+</CardGroup>
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Tab` | Switch to/from disassembly |
+| `Space` | Cycle decompilation flavors |
+| `G` | Jump to address (opens in disassembly) |
+| `Esc` | Navigate back in history |
+| `N` | Rename variable/function |
+
+## Exporting Pseudocode
+
+Save decompiled code:
+
+1. Right-click in pseudocode view
+2. Select "Copy" to copy to clipboard
+3. Or select "Export" to save to file
+4. Choose format (C, HTML, etc.)
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Decompilation Failed">
+    **Possible causes:**
+    - Obfuscated code
+    - Indirect jumps
+    - Missing function boundaries
+    
+    **Solutions:**
+    - Run CFG analysis first
+    - Define function boundaries manually
+    - Try disabling optimization passes
+  </Accordion>
+  
+  <Accordion title="Poor Variable Names">
+    **angr uses generic names like `local_4`**
+    
+    **Solutions:**
+    - Use AI variable name suggestions
+    - Manually rename important variables
+    - Enable accurate variable recovery mode
+  </Accordion>
+  
+  <Accordion title="Incorrect Types">
+    **Variables show as `int` when they should be pointers**
+    
+    **Solutions:**
+    - Manually retype variables
+    - Use AI type suggestions
+    - Define structures in Types view
+    - Enable advanced type inference
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Debugging" icon="bug" href="/user-guide/debugging">
+    Debug decompiled code with breakpoints
+  </Card>
+  <Card title="Patching" icon="wrench" href="/user-guide/patching">
+    Apply patches based on pseudocode analysis
+  </Card>
+  <Card title="Configuration" icon="gear" href="/user-guide/configuration">
+    Customize pseudocode colors and fonts
+  </Card>
+  <Card title="Disassembly" icon="microchip" href="/user-guide/disassembly">
+    Return to disassembly view guide
+  </Card>
+</CardGroup>

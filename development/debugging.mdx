@@ -1,0 +1,465 @@
+---
+title: Debugging
+description: Debug angr Management during development
+---
+
+## Overview
+
+angr Management is a PySide6 (Qt) application that can be debugged using standard Python debugging tools. This guide covers debugging techniques for both the GUI and backend components.
+
+## Running in Development Mode
+
+### Standard Launch
+
+Run angr Management directly from source:
+
+```bash
+python -m angrmanagement
+```
+
+Or use the installed entry point:
+
+```bash
+angr-management
+# or
+am
+```
+
+### Command Line Options
+
+Useful debugging flags:
+
+```bash
+# Run with profiling enabled
+angr-management --profiling
+
+# Open specific binary
+angr-management /path/to/binary
+
+# Run in headless mode (no GUI)
+angr-management --no-gui
+
+# Interactive IPython mode
+angr-management --interactive
+
+# Run script before launching
+angr-management --script setup.py
+
+# Enable autoreload (reload modules on job start)
+angr-management --autoreload
+
+# Show version
+angr-management --version
+```
+
+### Headless Mode
+
+For testing without the GUI:
+
+```bash
+angr-management --no-gui --script your_script.py
+```
+
+## Python Debugger
+
+### Using pdb
+
+Insert breakpoints in code:
+
+```python
+import pdb; pdb.set_trace()
+```
+
+Then run normally:
+
+```bash
+python -m angrmanagement
+```
+
+### Using debugpy
+
+angr Management bundles `debugpy` for remote debugging. Start with debugpy:
+
+```python
+import debugpy
+
+# Listen on port 5678
+debugpy.listen(("localhost", 5678))
+print("Waiting for debugger...")
+debugpy.wait_for_client()
+
+# Your code here
+from angrmanagement.ui.main_window import MainWindow
+main = MainWindow(show=True)
+```
+
+Connect from VS Code with this launch configuration:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Attach",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      }
+    }
+  ]
+}
+```
+
+### Using VS Code
+
+Launch configuration for direct debugging:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "angr Management",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "angrmanagement",
+      "args": [],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "angr Management (with binary)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "angrmanagement",
+      "args": ["/path/to/binary"],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
+}
+```
+
+## Qt Debugging
+
+### Enable Qt Debug Output
+
+Set environment variables:
+
+```bash
+export QT_DEBUG_PLUGINS=1
+export QT_LOGGING_RULES="*.debug=true"
+python -m angrmanagement
+```
+
+This shows:
+- Plugin loading details
+- Qt internal warnings
+- Event processing information
+
+### Qt Inspector
+
+For visual debugging of the Qt widget hierarchy:
+
+```python
+from PySide6.QtWidgets import QApplication
+
+app = QApplication.instance()
+# Enable inspector
+app.setProperty("QT_INSPECTOR", True)
+```
+
+### QTest for Interactive Testing
+
+Test UI components programmatically:
+
+```python
+from PySide6.QtTest import QTest
+from PySide6.QtCore import Qt
+from angrmanagement.ui.main_window import MainWindow
+
+# Create headless window
+main = MainWindow(show=False)
+
+# Simulate interactions
+QTest.mouseClick(main.some_button, Qt.LeftButton)
+QTest.keyClick(main.some_input, Qt.Key_Enter)
+
+# Check results
+assert main.some_value == expected
+```
+
+## Logging
+
+### Application Logging
+
+angr Management uses Python's logging system:
+
+```python
+import logging
+
+# Enable debug logging
+logging.basicConfig(level=logging.DEBUG)
+
+# Or configure specific loggers
+logging.getLogger('angrmanagement').setLevel(logging.DEBUG)
+logging.getLogger('angr').setLevel(logging.INFO)
+```
+
+### angr Profiling
+
+Enable angr's profiling logger:
+
+```bash
+python -m angrmanagement --profiling
+```
+
+Or in code:
+
+```python
+import angr
+angr.loggers.profiling_enabled = True
+```
+
+## Interactive Mode
+
+### IPython Console
+
+Launch with interactive mode:
+
+```bash
+angr-management --interactive
+```
+
+Or with a script:
+
+```bash
+angr-management --script setup.py --interactive
+```
+
+The script's globals are available in the `script_globals` variable.
+
+### Embedded Console
+
+angr Management includes an embedded IPython console (via qtconsole). Access it from:
+
+- **Menu:** View → Console
+- **Keyboard:** Check command palette for shortcuts
+
+The console has access to:
+```python
+main_window  # MainWindow instance
+workspace    # Current workspace
+instance     # Current instance
+project      # Current angr project
+```
+
+## Debugging Analysis Jobs
+
+### Job Manager
+
+angr Management runs analyses in background threads via the Job Manager. Debug jobs:
+
+```python
+# In code or console
+from angrmanagement.logic.jobmanager import JobManager
+
+job_manager = main_window.workspace.job_manager
+
+# List active jobs
+for job in job_manager._jobs:
+    print(f"{job.name}: {job.status}")
+
+# Wait for all jobs
+job_manager.join_all_jobs()
+```
+
+### Thread Debugging
+
+Identify the GUI thread:
+
+```python
+from PySide6.QtCore import QThread
+from angrmanagement.logic import GlobalInfo
+
+# Check if running in GUI thread
+if QThread.currentThread() == GlobalInfo.gui_thread:
+    print("Running in GUI thread")
+else:
+    print("Running in background thread")
+```
+
+## Memory Profiling
+
+### Using pytest-profiling
+
+Run tests with memory profiling:
+
+```bash
+pytest --profile-mem
+```
+
+### Using memory_profiler
+
+Install and use memory_profiler:
+
+```bash
+pip install memory_profiler
+python -m memory_profiler -m angrmanagement
+```
+
+Or decorate specific functions:
+
+```python
+from memory_profiler import profile
+
+@profile
+def my_function():
+    # Code to profile
+    pass
+```
+
+## Common Debugging Scenarios
+
+### Debugging a Crash
+
+1. **Enable core dumps (Linux/macOS):**
+```bash
+ulimit -c unlimited
+python -m angrmanagement
+```
+
+2. **Run with faulthandler:**
+```python
+import faulthandler
+faulthandler.enable()
+
+from angrmanagement.__main__ import main
+main()
+```
+
+3. **Check Qt crash handlers:**
+```bash
+export QT_FATAL_WARNINGS=1
+python -m angrmanagement
+```
+
+### Debugging UI Freezes
+
+1. **Check for blocking operations in GUI thread:**
+```python
+from PySide6.QtCore import QThread
+import time
+
+start = time.time()
+# Your code
+if QThread.currentThread() == GlobalInfo.gui_thread:
+    duration = time.time() - start
+    if duration > 0.1:
+        print(f"Warning: GUI thread blocked for {duration}s")
+```
+
+2. **Use QTimer to defer work:**
+```python
+from PySide6.QtCore import QTimer
+
+QTimer.singleShot(0, lambda: expensive_operation())
+```
+
+### Debugging Plugin Issues
+
+Check plugin loading:
+
+```python
+from angrmanagement.plugins import PluginManager
+
+pm = PluginManager(main_window)
+pm.discover_and_initialize_plugins()
+
+# List loaded plugins
+for plugin in pm.loaded_plugins:
+    print(f"{plugin.name}: {plugin.enabled}")
+```
+
+## Performance Analysis
+
+### Using cProfile
+
+```bash
+python -m cProfile -o output.prof -m angrmanagement
+```
+
+Analyze results:
+
+```python
+import pstats
+stats = pstats.Stats('output.prof')
+stats.sort_stats('cumulative')
+stats.print_stats(20)
+```
+
+### Using pytest-profiling
+
+For test profiling:
+
+```bash
+pytest --profile
+```
+
+## Autoreload for Development
+
+Enable module reloading on each job start:
+
+```bash
+angr-management --autoreload
+```
+
+This reloads Python modules before starting each analysis job, useful for rapid iteration without restarting the GUI.
+
+## Debugging Binary Analysis
+
+### Access angr Objects
+
+In the console or via API:
+
+```python
+# Get current project
+project = main_window.workspace.main_instance.project.am_obj
+
+# Run analysis with debugging
+cfg = project.analyses.CFGFast()
+print(cfg.graph.nodes())
+
+# Access specific functions
+func = project.kb.functions[0x400000]
+print(func.blocks)
+```
+
+### Enable angr Debugging
+
+```python
+import logging
+
+logging.getLogger('angr.analyses').setLevel(logging.DEBUG)
+logging.getLogger('angr.engines').setLevel(logging.DEBUG)
+```
+
+## Environment Variables
+
+Useful environment variables for debugging:
+
+```bash
+# Qt debugging
+export QT_DEBUG_PLUGINS=1
+export QT_LOGGING_RULES="*.debug=true"
+export QT_FATAL_WARNINGS=1
+
+# Python debugging
+export PYTHONDEVMODE=1
+export PYTHONASYNCIODEBUG=1
+
+# angr debugging
+export ANGR_LOGFILE=/tmp/angr.log
+```

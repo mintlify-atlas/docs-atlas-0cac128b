@@ -1,0 +1,464 @@
+---
+title: Contributing
+description: Guidelines for contributing to angr Management development
+---
+
+## Getting Started
+
+Thank you for your interest in contributing to angr Management! This guide will help you get started with contributing code, tests, and documentation.
+
+<Steps>
+  <Step title="Set up your development environment">
+    Follow the [Development Setup](/development/setup) guide to install angr Management from source with all development dependencies.
+
+    ```bash
+    git clone https://github.com/angr/angr-management.git
+    cd angr-management
+    uv sync --all-groups
+    ```
+  </Step>
+
+  <Step title="Clone the test binaries">
+    Many tests require binary files from the angr binaries repository:
+
+    ```bash
+    cd ..
+    git clone https://github.com/angr/binaries.git
+    ```
+
+    The tests expect the binaries repository to be in `../binaries/` relative to the angr-management directory.
+  </Step>
+
+  <Step title="Create a branch for your changes">
+    ```bash
+    git checkout -b my-feature-branch
+    ```
+  </Step>
+</Steps>
+
+## Code Style
+
+angr Management follows strict code style guidelines enforced by **Ruff**.
+
+### Linting and Formatting
+
+```bash
+# Check for style issues
+ruff check .
+
+# Automatically fix issues
+ruff check --fix .
+
+# Format code
+ruff format .
+```
+
+### Style Guidelines
+
+<CodeGroup>
+```python Required Import
+# ALL Python files must include this import
+from __future__ import annotations
+```
+
+```python Line Length
+# Maximum line length: 120 characters
+some_long_function_call(
+    argument1="value1",
+    argument2="value2",
+    argument3="value3",
+)
+```
+
+```python Type Hints
+# Use type hints for function signatures
+def process_address(addr: int, name: str | None = None) -> bool:
+    pass
+
+# Use TYPE_CHECKING for import-only types
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from angrmanagement.ui.workspace import Workspace
+```
+</CodeGroup>
+
+### Configuration
+
+Ruff configuration is in `pyproject.toml:106-138`:
+- **Target version:** Python 3.10
+- **Line length:** 120
+- **Excluded:** `angrmanagement/vendor/`
+
+## Testing
+
+angr Management uses **pytest** for testing. All contributions should include appropriate tests.
+
+### Running Tests
+
+<Tabs>
+  <Tab title="All Tests">
+    ```bash
+    # Run the full test suite
+    pytest
+
+    # Run with coverage
+    pytest --cov=angrmanagement --cov-report=html
+
+    # View coverage report
+    open htmlcov/index.html  # macOS
+    xdg-open htmlcov/index.html  # Linux
+    ```
+  </Tab>
+
+  <Tab title="Specific Tests">
+    ```bash
+    # Run a specific test file
+    pytest tests/test_disassembly_view.py
+
+    # Run a specific test function
+    pytest tests/test_main_window.py::TestMainWindow::test_load_binary
+
+    # Run tests matching a pattern
+    pytest -k "disassembly"
+    ```
+  </Tab>
+
+  <Tab title="Parallel Testing">
+    ```bash
+    # Run tests in parallel using pytest-xdist
+    pytest -n auto
+
+    # Run with specific number of workers
+    pytest -n 4
+    ```
+  </Tab>
+</Tabs>
+
+### Writing Tests
+
+angr Management provides test base classes to simplify test creation. See `tests/common.py:33-71`.
+
+<CodeGroup>
+```python Basic Test
+from __future__ import annotations
+
+import unittest
+from tests.common import AngrManagementTestCase
+
+class TestMyFeature(AngrManagementTestCase):
+    """Test cases that need the main window."""
+
+    def test_something(self):
+        # self.main is the MainWindow instance
+        workspace = self.main.workspace
+        instance = workspace.main_instance
+
+        # Your test code here
+        self.assertIsNotNone(workspace)
+```
+
+```python Project Test
+from __future__ import annotations
+
+from tests.common import ProjectOpenTestCase
+
+class TestWithProject(ProjectOpenTestCase):
+    """Test cases that need a loaded project."""
+
+    def test_with_binary(self):
+        # self.project is an angr.Project
+        # self.instance is the Instance
+        # self.workspace is the Workspace
+
+        cfg = self.project.analyses.CFGFast()
+        self.assertGreater(len(cfg.functions), 0)
+```
+
+```python UI Component Test
+from __future__ import annotations
+
+from PySide6.QtTest import QTest
+from PySide6.QtCore import Qt
+from tests.common import ProjectOpenTestCase
+
+class TestDisassemblyView(ProjectOpenTestCase):
+    """Test the disassembly view."""
+
+    def test_view_interaction(self):
+        # Get the disassembly view
+        disasm_view = self.workspace.view_manager.first_view_in_category("disassembly")
+
+        # Use QTest to drive UI interactions
+        QTest.mouseClick(disasm_view.some_widget, Qt.LeftButton)
+
+        # Assert expected behavior
+        self.assertTrue(disasm_view.current_function is not None)
+```
+</CodeGroup>
+
+### Test Base Classes
+
+**`AngrManagementTestCase`** (`tests/common.py:33`)
+- Creates a `MainWindow` instance with `show=False`
+- Provides `self.main` - the MainWindow
+- Cleans up after each test
+
+**`ProjectOpenTestCase`** (`tests/common.py:49`)
+- Extends `AngrManagementTestCase`
+- Loads a default test binary (x86_64 `true`)
+- Provides convenience properties:
+  - `self.workspace` - The Workspace
+  - `self.instance` - The Instance
+  - `self.project` - The angr.Project
+- Waits for jobs to complete after setup
+
+### Headless Testing
+
+Tests run in headless mode using Qt's minimal platform:
+
+```bash
+# Set in CI environment (see .github/workflows/coverage.yml:16)
+export QT_QPA_PLATFORM=minimal:enable_fonts
+
+pytest
+```
+
+### Coverage
+
+Coverage configuration is in `pyproject.toml:149-161`:
+
+```bash
+# Run with coverage
+pytest --cov=angrmanagement --cov-report=term-missing
+
+# Generate HTML report
+pytest --cov=angrmanagement --cov-report=html
+```
+
+Current coverage: [![Coverage](https://codecov.io/github/angr/angr-management/graph/badge.svg?token=H4QwMNfjb2)](https://codecov.io/github/angr/angr-management)
+
+## Type Checking
+
+Run mypy to check type hints:
+
+```bash
+mypy angrmanagement tests
+```
+
+Configuration in `pyproject.toml:140-147`:
+- Packages checked: `angrmanagement`, `tests`
+- Excludes: `angrmanagement/vendor/`, `/build`, `/dist`
+
+## Pull Request Process
+
+<Steps>
+  <Step title="Make your changes">
+    - Write code following the style guidelines
+    - Add tests for new functionality
+    - Update documentation if needed
+    - Run linting and tests locally
+
+    ```bash
+    ruff check --fix .
+    ruff format .
+    pytest
+    ```
+  </Step>
+
+  <Step title="Commit your changes">
+    Write clear, descriptive commit messages:
+
+    ```bash
+    git add .
+    git commit -m "Add feature: description of what changed and why"
+    ```
+  </Step>
+
+  <Step title="Push and create a pull request">
+    ```bash
+    git push origin my-feature-branch
+    ```
+
+    Then create a pull request on GitHub with:
+    - Clear title describing the change
+    - Description of what changed and why
+    - Any relevant issue numbers (e.g., "Fixes #123")
+    - Screenshots for UI changes
+  </Step>
+
+  <Step title="Respond to review feedback">
+    - Address reviewer comments
+    - Push additional commits
+    - Re-request review when ready
+  </Step>
+</Steps>
+
+## Testing Pull Requests
+
+The CI system runs multiple test suites:
+
+### Platform Tests
+
+Tests run on:
+- **Windows** (windows-2022)
+- **macOS** (macos-15)
+- **Ubuntu ARM** (ubuntu-24.04-arm)
+- **Ubuntu x64** (ubuntu-latest with coverage)
+
+See `.github/workflows/ci.yml` and `.github/workflows/coverage.yml`.
+
+### Test Groups
+
+- **Unit tests** - Component-level tests
+- **Integration tests** - Full workflow tests
+- **UI tests** - Interactive component tests
+
+## API Stability
+
+<Warning>
+The angr Management API is highly in-flux and may change between versions. 
+
+If you're building something that depends on a specific API:
+1. Contribute a test case for that API
+2. This helps ensure the API doesn't break in future versions
+3. Ask in the [angr Discord](https://angr.io/invite/) if you have questions
+</Warning>
+
+## Plugin Development
+
+Plugins are a great way to extend angr Management without modifying core code.
+
+### Plugin Structure
+
+Plugins are Python files containing a `BasePlugin` subclass:
+
+```python
+from __future__ import annotations
+
+from angrmanagement.plugins import BasePlugin
+
+class MyPlugin(BasePlugin):
+    def __init__(self, workspace):
+        super().__init__(workspace)
+
+    def teardown(self):
+        pass
+
+    # Override methods from BasePlugin
+    # See: angrmanagement/plugins/base_plugin.py
+```
+
+### Plugin Locations
+
+Plugins are loaded from:
+- `angrmanagement/plugins/` - Built-in plugins
+- `~/.local/share/angr-management/plugins/` - User plugins
+
+### Plugin Resources
+
+- [Plugin base class source](https://github.com/angr/angr-management/blob/master/angrmanagement/plugins/base_plugin.py)
+- Any method or attribute can be overridden and will be called on relevant events
+- See existing plugins in `angrmanagement/plugins/` for examples
+
+## Documentation
+
+Documentation contributions are always welcome!
+
+### Building Documentation
+
+```bash
+# Install documentation dependencies
+uv sync --group docs
+
+# Build docs
+cd docs
+make html
+
+# View docs
+open _build/html/index.html
+```
+
+### Documentation Structure
+
+- **Sphinx RST** - Legacy documentation in `docs/`
+- **Mintlify MDX** - New documentation (this site)
+
+When adding new features, update both if applicable.
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="angr Discord" icon="discord" href="https://angr.io/invite/">
+    Join the community and ask questions
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/angr/angr-management/issues">
+    Report bugs or request features
+  </Card>
+  <Card title="Architecture Guide" icon="sitemap" href="/development/architecture">
+    Understand the codebase structure
+  </Card>
+  <Card title="Development Setup" icon="code" href="/development/setup">
+    Set up your development environment
+  </Card>
+</CardGroup>
+
+## Common Contribution Types
+
+<AccordionGroup>
+  <Accordion title="Bug Fixes">
+    1. Create an issue describing the bug (if one doesn't exist)
+    2. Write a test that reproduces the bug
+    3. Fix the bug
+    4. Verify the test passes
+    5. Submit a PR referencing the issue
+  </Accordion>
+
+  <Accordion title="New Features">
+    1. Discuss the feature in an issue or on Discord first
+    2. Design the feature to fit the existing architecture
+    3. Implement the feature with comprehensive tests
+    4. Update documentation
+    5. Submit a PR with screenshots/examples
+  </Accordion>
+
+  <Accordion title="UI Improvements">
+    1. Describe the UX issue or improvement
+    2. Provide mockups or examples if possible
+    3. Implement using Qt/PySide6 following existing patterns
+    4. Test on multiple platforms if possible
+    5. Include before/after screenshots in PR
+  </Accordion>
+
+  <Accordion title="Performance Improvements">
+    1. Profile and identify the bottleneck
+    2. Write a benchmark test
+    3. Implement the optimization
+    4. Verify the benchmark shows improvement
+    5. Ensure existing tests still pass
+  </Accordion>
+</AccordionGroup>
+
+## Code Review Guidelines
+
+When reviewing or submitting code:
+
+- **Functionality** - Does it work as intended?
+- **Tests** - Are there adequate tests?
+- **Style** - Does it follow the code style?
+- **Performance** - Are there any performance concerns?
+- **Documentation** - Is it documented appropriately?
+- **Maintainability** - Is it easy to understand and maintain?
+
+## License
+
+By contributing to angr Management, you agree that your contributions will be licensed under the BSD-2-Clause License.
+
+## Recognition
+
+Contributors are recognized in:
+- Git commit history
+- GitHub contributors page
+- Release notes (for significant contributions)
+
+Thank you for contributing to angr Management!

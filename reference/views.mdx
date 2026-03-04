@@ -1,0 +1,398 @@
+---
+title: Views
+description: Base classes for angr management views
+---
+
+## View Base Classes
+
+angr management provides several base classes for creating views. Views are UI components that display different aspects of the binary analysis.
+
+## BaseView
+
+The base class for all main views.
+
+### Constructor
+
+```python
+BaseView(
+    category: str,
+    workspace: Workspace,
+    default_docking_position: str
+)
+```
+
+<ParamField path="category" type="str" required>
+  The category of the view (e.g., "disassembly", "pseudocode", "hex")
+</ParamField>
+
+<ParamField path="workspace" type="Workspace" required>
+  The workspace this view belongs to
+</ParamField>
+
+<ParamField path="default_docking_position" type="str" required>
+  Default docking position: "center", "left", "right", "top", or "bottom"
+</ParamField>
+
+### Properties
+
+<ResponseField name="workspace" type="Workspace">
+  The workspace containing this view
+</ResponseField>
+
+<ResponseField name="category" type="str">
+  The view category
+</ResponseField>
+
+<ResponseField name="default_docking_position" type="str">
+  Where the view should dock by default
+</ResponseField>
+
+<ResponseField name="index" type="int">
+  Index number for this view instance (used in caption)
+</ResponseField>
+
+<ResponseField name="base_caption" type="str">
+  Base caption text for the view
+</ResponseField>
+
+<ResponseField name="caption" type="str">
+  Full caption including index (read-only property)
+</ResponseField>
+
+<ResponseField name="icon" type="QIcon">
+  Icon for the view
+</ResponseField>
+
+### Methods
+
+#### focus
+
+```python
+focus() -> None
+```
+
+Bring this view to the front and give it focus.
+
+#### refresh
+
+```python
+refresh() -> None
+```
+
+Refresh the view based on changes in underlying data. Should be fast as it may be called frequently.
+
+#### reload
+
+```python
+reload() -> None
+```
+
+Reload and regenerate the view from scratch. May be expensive.
+
+## InstanceView
+
+Base class for views associated with an Instance.
+
+### Constructor
+
+```python
+InstanceView(
+    category: str,
+    workspace: Workspace,
+    default_docking_position: str,
+    instance: Instance
+)
+```
+
+<ParamField path="category" type="str" required>
+  The view category
+</ParamField>
+
+<ParamField path="workspace" type="Workspace" required>
+  The workspace this view belongs to
+</ParamField>
+
+<ParamField path="default_docking_position" type="str" required>
+  Default docking position
+</ParamField>
+
+<ParamField path="instance" type="Instance" required>
+  The instance this view is associated with
+</ParamField>
+
+### Properties
+
+<ResponseField name="instance" type="Instance">
+  The instance containing project and analysis data
+</ResponseField>
+
+<ResponseField name="published_view_state" type="ViewState">
+  The current view state being published
+</ResponseField>
+
+### Methods
+
+#### on_focused
+
+```python
+on_focused() -> None
+```
+
+Called when this view receives focus.
+
+#### notify_view_state_updated
+
+```python
+notify_view_state_updated() -> None
+```
+
+Notify subscribers that the view state has been updated.
+
+## FunctionView
+
+Base class for views that display function-specific content.
+
+### Constructor
+
+```python
+FunctionView(
+    category: str,
+    workspace: Workspace,
+    default_docking_position: str,
+    instance: Instance
+)
+```
+
+Parameters are the same as InstanceView.
+
+### Properties
+
+<ResponseField name="function" type="Function | None">
+  The currently displayed function (read/write property)
+</ResponseField>
+
+## SynchronizedView
+
+Base class for views that can be synchronized with other views.
+
+### Properties
+
+<ResponseField name="sync_state" type="SynchronizedViewState">
+  The synchronization state shared with other views
+</ResponseField>
+
+### Methods
+
+#### desync
+
+```python
+desync() -> None
+```
+
+Stop synchronization with other views.
+
+#### sync_with_state_object
+
+```python
+sync_with_state_object(state: SynchronizedViewState | None = None) -> None
+```
+
+Synchronize with another view state.
+
+<ParamField path="state" type="SynchronizedViewState | None" required>
+  The view state to synchronize with, or None to create a new isolated state
+</ParamField>
+
+#### sync_from_state
+
+```python
+sync_from_state() -> None
+```
+
+Update this view to reflect the current synchronized state.
+
+#### set_synchronized_cursor_address
+
+```python
+set_synchronized_cursor_address(address: int | None) -> None
+```
+
+Set the cursor address that will be synchronized across all views in the group.
+
+<ParamField path="address" type="int | None" required>
+  The address to synchronize, or None to clear
+</ParamField>
+
+#### on_synchronized_cursor_address_changed
+
+```python
+on_synchronized_cursor_address_changed() -> None
+```
+
+Handle synchronized cursor address change event. Override to implement custom behavior.
+
+#### set_synchronized_highlight_regions
+
+```python
+set_synchronized_highlight_regions(regions: Sequence[SynchronizedHighlightRegion]) -> None
+```
+
+Set highlight regions that will be synchronized across views.
+
+<ParamField path="regions" type="Sequence[SynchronizedHighlightRegion]" required>
+  The regions to highlight
+</ParamField>
+
+#### on_synchronized_highlight_regions_changed
+
+```python
+on_synchronized_highlight_regions_changed() -> None
+```
+
+Handle synchronized highlight region change event. Override to implement custom behavior.
+
+#### on_synchronized_view_group_changed
+
+```python
+on_synchronized_view_group_changed() -> None
+```
+
+Handle view being added to or removed from the synchronization group. Override to implement custom behavior.
+
+#### get_synchronize_with_submenu
+
+```python
+get_synchronize_with_submenu() -> QMenu
+```
+
+Get a submenu for 'Synchronize with' context menu option.
+
+<ResponseField name="return" type="QMenu">
+  A menu containing available view groups to synchronize with
+</ResponseField>
+
+## SynchronizedInstanceView
+
+Base class for views that are associated with an instance and can be synchronized.
+
+Combines `InstanceView` and `SynchronizedView` functionality.
+
+### Constructor
+
+```python
+SynchronizedInstanceView(
+    category: str,
+    workspace: Workspace,
+    default_docking_position: str,
+    instance: Instance
+)
+```
+
+Parameters are the same as InstanceView.
+
+## SynchronizedFunctionView
+
+Base class for views that are function-specific and can be synchronized.
+
+Combines `FunctionView` and `SynchronizedView` functionality.
+
+### Constructor
+
+```python
+SynchronizedFunctionView(
+    category: str,
+    workspace: Workspace,
+    default_docking_position: str,
+    instance: Instance
+)
+```
+
+Parameters are the same as FunctionView.
+
+## ViewState
+
+Represents the state of a view that can be published to other components.
+
+### Constructor
+
+```python
+ViewState(cursors: list[int] | None = None)
+```
+
+<ParamField path="cursors" type="list[int]">
+  List of cursor addresses in the view
+</ParamField>
+
+### Properties
+
+<ResponseField name="cursors" type="list[int]">
+  List of cursor addresses
+</ResponseField>
+
+## SynchronizedViewState
+
+State tracking for synchronized views.
+
+### Properties
+
+<ResponseField name="views" type="set[SynchronizedView]">
+  Set of views participating in synchronization
+</ResponseField>
+
+<ResponseField name="cursor_address" type="int | None">
+  The synchronized cursor address
+</ResponseField>
+
+<ResponseField name="highlight_regions" type="dict[SynchronizedView, Sequence[SynchronizedHighlightRegion]]">
+  Highlight regions contributed by each view
+</ResponseField>
+
+### Methods
+
+#### register_view
+
+```python
+register_view(view: SynchronizedView) -> None
+```
+
+Register a view for synchronization.
+
+<ParamField path="view" type="SynchronizedView" required>
+  The view to register
+</ParamField>
+
+#### unregister_view
+
+```python
+unregister_view(view: SynchronizedView) -> None
+```
+
+Unregister a view from synchronization.
+
+<ParamField path="view" type="SynchronizedView" required>
+  The view to unregister
+</ParamField>
+
+## Common View Categories
+
+The following view categories are used in angr management:
+
+- `disassembly` - Disassembly view (graph and linear modes)
+- `pseudocode` - Decompiled pseudocode view
+- `hex` - Hex editor view
+- `functions` - Functions list view
+- `strings` - Strings view
+- `console` - Python console view
+- `log` - Log messages view
+- `jobs` - Background jobs view
+- `symexec` - Symbolic execution view
+- `states` - States list view
+- `traces` - Traces view
+- `breakpoints` - Breakpoints view
+- `registers` - Registers view
+- `stack` - Stack view
+- `types` - Types view
+- `patches` - Patches view
+- `proximity` - Proximity graph view
+- `call_explorer` - Call explorer view
+- `data_dependency` - Data dependency graph view
